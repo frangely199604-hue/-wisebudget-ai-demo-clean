@@ -1,0 +1,23 @@
+# Virtual environment
+.venv/
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Streamlit local settings
+.streamlit/secrets.toml
+
+# Real or generated financial data
+data/*.csv
+
+# Private documents
+*.pdf
+*.xlsx
+*.xls
+*.docx
+
+# System files
+.DS_Store
+Thumbs.db
