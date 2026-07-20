@@ -80,22 +80,32 @@ def inject_custom_css():
         max-width: 1180px;
     }
 
-    /* Hide Streamlit chrome as much as Streamlit Cloud allows. */
-    #MainMenu,
+    /* Tidy Streamlit chrome WITHOUT hiding the header. The header holds the
+       sidebar open/close arrow - hiding it strands mobile users with no way
+       to reopen a closed sidebar. Only decorative extras are hidden. */
     footer,
-    header,
-    [data-testid="stToolbar"],
     [data-testid="stDecoration"],
     [data-testid="stStatusWidget"],
     .stDeployButton {
         display: none !important;
-        visibility: hidden !important;
-        height: 0 !important;
     }
 
+    /* Keep the header visible but blend it into the app background so the
+       sidebar arrow and menu stay usable without a big white bar. */
     [data-testid="stHeader"] {
-        background: transparent !important;
-        height: 0 !important;
+        background: rgba(243, 246, 250, 0.72) !important;
+        backdrop-filter: blur(6px);
+    }
+
+    /* Safety net: the sidebar open/close controls must never be hidden or
+       faded by the readability overrides above. */
+    [data-testid="stSidebarCollapsedControl"],
+    [data-testid="stSidebarCollapsedControl"] *,
+    [data-testid="stExpandSidebarButton"],
+    [data-testid="stSidebarCollapseButton"],
+    [data-testid="collapsedControl"] {
+        visibility: visible !important;
+        opacity: 1 !important;
     }
 
     /* Hide heading anchor/link icons. */
@@ -543,7 +553,9 @@ def inject_custom_css():
         .block-container {
             padding-left: 1rem !important;
             padding-right: 1rem !important;
-            padding-top: 1rem !important;
+            /* Enough room so the demo banner never hides under the header
+               bar that holds the sidebar arrow. */
+            padding-top: 2.6rem !important;
             max-width: 100% !important;
         }
 
@@ -955,6 +967,54 @@ def render_saving_opportunities(
 
 
 # ============================================================
+# Navigation state (shared by the sidebar and the in-page App menu)
+# ============================================================
+#
+# On phones the Streamlit sidebar can be collapsed (or hard to reopen), so the
+# app offers navigation in TWO places: the normal sidebar AND an "App menu"
+# expander at the top of the main page. Both write to the same session-state
+# values, so they always stay in sync:
+#   st.session_state["current_page"] - the page being shown (single source of truth)
+#   st.session_state["demo_mode"]    - whether Demo Mode is on (single source of truth)
+# Each widget has its own key; before it renders we copy the master value into
+# the widget's key, and when the user changes it, on_change copies the widget's
+# value back into the master. Changing either control updates both.
+
+PAGES = [
+    "Dashboard",
+    "Add Income",
+    "Add Expense",
+    "WiseBudget AI Coach",
+    "Savings Goals",
+    "Investment Learning Hub",
+    "Feedback",
+]
+
+# This public cloud demo starts with Demo Mode ON, so visitors always see
+# example data first and never need to enter anything.
+if "current_page" not in st.session_state:
+    st.session_state["current_page"] = PAGES[0]
+if "demo_mode" not in st.session_state:
+    st.session_state["demo_mode"] = True
+
+
+def sync_current_page(widget_key):
+    """Copy a navigation widget's value into the master current_page value."""
+    st.session_state["current_page"] = st.session_state[widget_key]
+
+
+def sync_demo_mode(widget_key):
+    """Copy a Demo Mode widget's value into the master demo_mode value."""
+    st.session_state["demo_mode"] = st.session_state[widget_key]
+
+
+DEMO_MODE_HELP = (
+    "Show realistic example data instead of your real records. Your CSV files "
+    "are never changed. On in this public demo by default."
+)
+
+
+# ============================================================
 # Sidebar: navigation + AI settings
 # ============================================================
 
@@ -970,29 +1030,25 @@ with st.sidebar:
         st.title("WiseBudget AI")
 
 # Demo Mode: shows realistic example data everywhere without ever touching
-# the real CSV files. This public cloud demo starts with Demo Mode ON, so
-# visitors always see example data first and never need to enter anything.
-if "demo_mode" not in st.session_state:
-    st.session_state["demo_mode"] = True
-demo_mode = st.sidebar.toggle(
+# the real CSV files.
+st.session_state["demo_mode_sidebar"] = st.session_state["demo_mode"]
+st.sidebar.toggle(
     "Demo Mode",
-    key="demo_mode",
-    help="Show realistic example data instead of your real records. Your CSV files are never changed. On in this public demo by default.",
+    key="demo_mode_sidebar",
+    on_change=sync_demo_mode,
+    args=("demo_mode_sidebar",),
+    help=DEMO_MODE_HELP,
 )
-if demo_mode:
+if st.session_state["demo_mode"]:
     st.sidebar.caption("🧪 Example data only - your files are untouched.")
 
-page = st.sidebar.radio(
+st.session_state["nav_sidebar"] = st.session_state["current_page"]
+st.sidebar.radio(
     "Navigation",
-    [
-        "Dashboard",
-        "Add Income",
-        "Add Expense",
-        "WiseBudget AI Coach",
-        "Savings Goals",
-        "Investment Learning Hub",
-        "Feedback",
-    ]
+    PAGES,
+    key="nav_sidebar",
+    on_change=sync_current_page,
+    args=("nav_sidebar",),
 )
 
 st.sidebar.write("---")
@@ -1078,6 +1134,50 @@ st.markdown(
     'Do not enter private financial information.</div>',
     unsafe_allow_html=True,
 )
+
+
+# ============================================================
+# App menu: mobile-safe navigation fallback
+# ============================================================
+# Mirrors the sidebar controls inside the main page, so phones can always
+# navigate and toggle Demo Mode even when the sidebar is collapsed.
+
+with st.expander("📱 App menu", expanded=False):
+    st.caption("Use this menu if the sidebar is hidden on mobile.")
+
+    st.session_state["demo_mode_menu"] = st.session_state["demo_mode"]
+    st.toggle(
+        "Demo Mode",
+        key="demo_mode_menu",
+        on_change=sync_demo_mode,
+        args=("demo_mode_menu",),
+        help=DEMO_MODE_HELP,
+    )
+
+    st.session_state["nav_menu"] = st.session_state["current_page"]
+    st.selectbox(
+        "Go to page",
+        PAGES,
+        key="nav_menu",
+        on_change=sync_current_page,
+        args=("nav_menu",),
+    )
+
+    if ai_ready:
+        st.markdown(
+            '<span class="wb-ai-pill wb-ai-on">● Local AI connected</span>',
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            '<span class="wb-ai-pill wb-ai-off">● Rule-based mode</span>',
+            unsafe_allow_html=True,
+        )
+
+
+# The rest of the app routes on this one value, which both the sidebar radio
+# and the App menu selector control.
+page = st.session_state["current_page"]
 
 
 # ============================================================
@@ -1255,7 +1355,8 @@ elif page == "Add Income":
     if st.session_state.get("demo_mode"):
         st.info(
             "Demo Mode is on, so the app is showing example data. "
-            "Turn off Demo Mode in the sidebar to add and edit your real income."
+            "Turn off Demo Mode in the sidebar or the App menu above to add "
+            "and edit your real income."
         )
         st.stop()
 
@@ -1325,7 +1426,8 @@ elif page == "Add Expense":
     if st.session_state.get("demo_mode"):
         st.info(
             "Demo Mode is on, so the app is showing example data. "
-            "Turn off Demo Mode in the sidebar to add and edit your real expenses."
+            "Turn off Demo Mode in the sidebar or the App menu above to add "
+            "and edit your real expenses."
         )
         st.stop()
 
@@ -1571,7 +1673,8 @@ elif page == "Savings Goals":
     if st.session_state.get("demo_mode"):
         st.info(
             "Demo Mode is on - the goals below are examples. "
-            "Turn off Demo Mode in the sidebar to add your own goals."
+            "Turn off Demo Mode in the sidebar or the App menu above to add "
+            "your own goals."
         )
     else:
         with st.form("goals_form"):
