@@ -1,3 +1,4 @@
+import base64
 import html
 import io
 
@@ -399,14 +400,16 @@ def inject_custom_css():
     }
 
     .wb-demo-banner {
-        background: #FEF3C7;
-        border: 1px solid var(--wb-amber);
+        background: linear-gradient(90deg, #FEF3C7 0%, #FDEBC8 100%);
+        border: 1px solid #FBD38D;
+        border-left: 5px solid var(--wb-amber);
         color: #92400E !important;
         border-radius: 12px;
-        padding: 0.58rem 0.9rem;
-        font-weight: 800;
-        font-size: 0.92rem;
-        margin-bottom: 0.8rem;
+        padding: 0.5rem 0.85rem;
+        font-weight: 700;
+        font-size: 0.88rem;
+        margin-bottom: 0.7rem;
+        box-shadow: 0 2px 8px rgba(245, 158, 11, 0.10);
     }
 
     .wb-action-card {
@@ -546,6 +549,239 @@ def inject_custom_css():
     }
 
     /* ============================================================
+       Hero (product-style landing section at the top)
+       ============================================================ */
+
+    .wb-hero {
+        background: linear-gradient(135deg, #FFFFFF 0%, #F0FDF7 100%);
+        border: 1px solid var(--wb-border);
+        border-radius: 20px;
+        padding: 1.25rem 1.4rem 1.05rem 1.4rem;
+        box-shadow: 0 6px 22px rgba(7, 26, 45, 0.07);
+        margin-bottom: 0.35rem;
+    }
+
+    .wb-hero-kicker {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.82rem;
+        font-weight: 800;
+        color: var(--wb-emerald-dark) !important;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        margin-bottom: 0.4rem;
+    }
+
+    .wb-hero-kicker img {
+        border-radius: 9px;
+    }
+
+    .wb-hero-title {
+        font-size: 2rem;
+        font-weight: 850;
+        color: var(--wb-navy) !important;
+        line-height: 1.12;
+        letter-spacing: -0.02em;
+        margin: 0 0 0.3rem 0;
+    }
+
+    .wb-hero-sub {
+        color: #3B4A5F !important;
+        font-size: 1rem;
+        line-height: 1.5;
+        margin: 0 0 0.7rem 0;
+        max-width: 36rem;
+    }
+
+    /* ============================================================
+       Stat cards (custom metric cards with icon + helper text)
+       ============================================================ */
+
+    .wb-stat-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+        gap: 0.7rem;
+        margin: 0.2rem 0 0.4rem 0;
+    }
+
+    .wb-stat-card {
+        background: linear-gradient(180deg, #FFFFFF 0%, #FBFDFF 100%);
+        border: 1px solid var(--wb-border);
+        border-radius: 16px;
+        padding: 0.85rem 1rem 0.8rem 1rem;
+        box-shadow: 0 4px 14px rgba(7, 26, 45, 0.07);
+    }
+
+    .wb-stat-icon {
+        font-size: 1.1rem;
+    }
+
+    .wb-stat-label {
+        color: var(--wb-muted) !important;
+        font-size: 0.8rem;
+        font-weight: 700;
+        margin: 0.15rem 0 0.1rem 0;
+    }
+
+    .wb-stat-value {
+        color: var(--wb-navy) !important;
+        font-size: 1.55rem;
+        font-weight: 850;
+        line-height: 1.12;
+        word-break: break-word;
+    }
+
+    .wb-stat-help {
+        color: var(--wb-muted) !important;
+        font-size: 0.75rem;
+        line-height: 1.35;
+        margin-top: 0.25rem;
+    }
+
+    /* ============================================================
+       Intro cards (friendly page/section openers)
+       ============================================================ */
+
+    .wb-intro-card {
+        background: linear-gradient(135deg, #FFFFFF 0%, #F0FDF7 100%);
+        border: 1px solid var(--wb-border);
+        border-left: 5px solid var(--wb-emerald);
+        border-radius: 14px;
+        padding: 0.75rem 1rem;
+        color: #334155 !important;
+        font-size: 0.94rem;
+        line-height: 1.5;
+        box-shadow: 0 3px 10px rgba(7, 26, 45, 0.05);
+        margin-bottom: 0.4rem;
+    }
+
+    .wb-intro-title {
+        font-weight: 800;
+        color: var(--wb-navy) !important;
+        margin-bottom: 0.1rem;
+    }
+
+    /* ============================================================
+       Checklist items (recommended actions inside opportunity cards)
+       ============================================================ */
+
+    .wb-checklist {
+        margin: 0.15rem 0 0.35rem 0;
+    }
+
+    .wb-check-item {
+        display: flex;
+        gap: 0.5rem;
+        align-items: flex-start;
+        background: #F8FAFC;
+        border: 1px solid #EEF2F7;
+        border-radius: 10px;
+        padding: 0.45rem 0.65rem;
+        margin-bottom: 0.35rem;
+        font-size: 0.88rem;
+        color: #334155 !important;
+        line-height: 1.45;
+    }
+
+    .wb-check-mark {
+        color: var(--wb-emerald-dark) !important;
+        font-weight: 800;
+        flex-shrink: 0;
+    }
+
+    /* ============================================================
+       Ranked spending list rows
+       ============================================================ */
+
+    .wb-rank-row {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        background: #FFFFFF;
+        border: 1px solid #EEF2F7;
+        border-radius: 12px;
+        padding: 0.45rem 0.7rem;
+        margin-bottom: 0.4rem;
+    }
+
+    .wb-rank-num {
+        min-width: 1.7rem;
+        height: 1.7rem;
+        border-radius: 999px;
+        background: var(--wb-mint);
+        color: var(--wb-emerald-dark) !important;
+        font-weight: 800;
+        font-size: 0.8rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .wb-rank-name {
+        font-weight: 700;
+        color: var(--wb-navy) !important;
+        font-size: 0.92rem;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .wb-rank-amount {
+        font-weight: 800;
+        color: var(--wb-navy) !important;
+        font-size: 0.92rem;
+        white-space: nowrap;
+    }
+
+    .wb-rank-share {
+        color: var(--wb-muted) !important;
+        font-size: 0.8rem;
+        margin-left: 0.3rem;
+    }
+
+    /* ============================================================
+       Education hub cards
+       ============================================================ */
+
+    .wb-edu-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 0.7rem;
+        margin: 0.2rem 0 0.4rem 0;
+    }
+
+    .wb-edu-card {
+        background: #FFFFFF;
+        border: 1px solid var(--wb-border);
+        border-radius: 16px;
+        padding: 0.95rem 1rem;
+        box-shadow: 0 4px 14px rgba(7, 26, 45, 0.05);
+    }
+
+    .wb-edu-icon {
+        font-size: 1.35rem;
+    }
+
+    .wb-edu-title {
+        font-weight: 800;
+        color: var(--wb-navy) !important;
+        margin: 0.25rem 0 0.15rem 0;
+    }
+
+    .wb-edu-text {
+        color: #334155 !important;
+        font-size: 0.9rem;
+        line-height: 1.5;
+    }
+
+    /* Icon inside goal and action cards. */
+    .wb-card-icon {
+        font-size: 1.05rem;
+        margin-right: 0.35rem;
+    }
+
+    /* ============================================================
        Mobile fixes
        ============================================================ */
 
@@ -559,23 +795,51 @@ def inject_custom_css():
             max-width: 100% !important;
         }
 
+        /* App-like heading scale on phone: clear hierarchy without shouting. */
         h1 {
-            font-size: 2.35rem !important;
-            line-height: 1.1 !important;
+            font-size: 1.7rem !important;
+            line-height: 1.15 !important;
         }
 
         h2 {
-            font-size: 1.85rem !important;
-            line-height: 1.18 !important;
+            font-size: 1.4rem !important;
+            line-height: 1.2 !important;
         }
 
         h3 {
-            font-size: 1.35rem !important;
-            line-height: 1.2 !important;
+            font-size: 1.15rem !important;
+            line-height: 1.25 !important;
         }
 
         .wb-header-title {
             font-size: 1.45rem !important;
+        }
+
+        .wb-hero {
+            padding: 1rem 1.05rem 0.9rem 1.05rem !important;
+        }
+
+        .wb-hero-title {
+            font-size: 1.5rem !important;
+        }
+
+        .wb-hero-sub {
+            font-size: 0.93rem !important;
+        }
+
+        /* Stat cards: exactly two per row on phones - big enough to read,
+           small enough to see the whole snapshot at a glance. */
+        .wb-stat-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 0.55rem !important;
+        }
+
+        .wb-stat-value {
+            font-size: 1.3rem !important;
+        }
+
+        .wb-edu-grid {
+            grid-template-columns: 1fr !important;
         }
 
         .wb-header-sub {
@@ -699,6 +963,57 @@ def get_active_data():
     return helpers.load_income(), helpers.load_expenses(), helpers.load_goals()
 
 
+def render_stat_cards(cards):
+    """
+    Custom metric cards: icon, label, a big value and a small helper line.
+    A CSS grid keeps them four-across on desktop and two-across on phones
+    without relying on Streamlit columns (which stack full-width on mobile
+    and would make the snapshot very tall).
+
+    `cards` is a list of dicts with keys: icon, label, value, help.
+    All values here are app-generated (never raw user text), so they are safe
+    to place in HTML.
+    """
+    boxes = "".join(
+        '<div class="wb-stat-card">'
+        f'<span class="wb-stat-icon">{card["icon"]}</span>'
+        f'<div class="wb-stat-label">{card["label"]}</div>'
+        f'<div class="wb-stat-value">{card["value"]}</div>'
+        f'<div class="wb-stat-help">{card["help"]}</div>'
+        '</div>'
+        for card in cards
+    )
+    st.markdown(f'<div class="wb-stat-grid">{boxes}</div>', unsafe_allow_html=True)
+
+
+# Icons for the Top 3 Money Actions cards, matched against the opportunity
+# title. Purely visual - the rule engine in helpers.py is unchanged.
+ACTION_ICONS = [
+    ("food", "🛒"),
+    ("subscription", "📺"),
+    ("transport", "🚌"),
+    ("energy", "⚡"),
+    ("mobile", "📱"),
+    ("phone", "📱"),
+    ("broadband", "🌐"),
+    ("internet", "🌐"),
+    ("shopping", "🛍️"),
+    ("entertainment", "🎬"),
+    ("gym", "💪"),
+    ("health", "💪"),
+    ("education", "📚"),
+]
+
+
+def action_icon(title):
+    """Pick a small icon for an action/opportunity title (fallback: 💡)."""
+    lowered = str(title).lower()
+    for word, icon in ACTION_ICONS:
+        if word in lowered:
+            return icon
+    return "💡"
+
+
 def render_top_actions(opportunities):
     """
     "Your Top 3 Money Actions": compact cards for the highest-impact non-debt
@@ -714,9 +1029,11 @@ def render_top_actions(opportunities):
             f'<span class="wb-priority wb-priority-{action["priority"].lower()}">'
             f'{action["priority"]}</span>'
         )
+        icon = action_icon(action["short_title"])
         st.markdown(
             f'<div class="wb-action-card">'
-            f'<div class="wb-action-title">{action["short_title"]} {badge}</div>'
+            f'<div class="wb-action-title"><span class="wb-card-icon">{icon}</span>'
+            f'{action["short_title"]} {badge}</div>'
             f'<div class="wb-action-saving">Est. £{action["monthly_low"]:,.2f} to '
             f'£{action["monthly_high"]:,.2f} / month</div>'
             f'<div class="wb-action-step">Next step: {action["next_step"]}</div>'
@@ -771,9 +1088,18 @@ def render_spending_views(expenses_data, key_prefix):
         total_spent = float(totals.sum())
 
         if choice == "Ranked list":
+            rows = []
             for rank, (category, amount) in enumerate(totals.items(), start=1):
                 share = (amount / total_spent * 100) if total_spent > 0 else 0
-                st.write(f"{rank}. **{category}**: £{amount:,.2f} ({share:.1f}%)")
+                rows.append(
+                    '<div class="wb-rank-row">'
+                    f'<span class="wb-rank-num">{rank}</span>'
+                    f'<span class="wb-rank-name">{html.escape(str(category))}</span>'
+                    f'<span class="wb-rank-amount">£{amount:,.2f}'
+                    f'<span class="wb-rank-share">{share:.1f}%</span></span>'
+                    '</div>'
+                )
+            st.markdown("".join(rows), unsafe_allow_html=True)
 
         elif choice == "Percentages":
             for category, amount in totals.items():
@@ -932,9 +1258,18 @@ def render_saving_opportunities(
             st.markdown(f"**Why it matters:** {opp['why_it_matters']}")
 
             # These come from the rule engine (helpers), not the AI model.
+            # Rendered as tick-style checklist items so they read as a to-do
+            # list rather than a wall of bullets.
             st.markdown("**Recommended actions**")
-            for step in opp["action_steps"]:
-                st.markdown(f"- {step}")
+            checklist = "".join(
+                '<div class="wb-check-item"><span class="wb-check-mark">✓</span>'
+                f'<span>{html.escape(str(step))}</span></div>'
+                for step in opp["action_steps"]
+            )
+            st.markdown(
+                f'<div class="wb-checklist">{checklist}</div>',
+                unsafe_allow_html=True,
+            )
 
             # ---- Optional AI saving plan (only runs when the user clicks) ----
             if st.button("Generate AI saving plan", key=plan_key):
@@ -1106,20 +1441,26 @@ if st.session_state.get("demo_mode"):
         unsafe_allow_html=True,
     )
 
-# Compact header: small logo on the left, title + subtitle + trust badges.
-header_icon_col, header_text_col = st.columns([1, 11], vertical_alignment="center")
-with header_icon_col:
-    if ICON_FILE.exists():
-        st.image(str(ICON_FILE), width=64)
-with header_text_col:
-    st.markdown(
-        '<p class="wb-header-title">WiseBudget AI</p>'
-        '<p class="wb-header-sub">Private budgeting insights. Smarter saving decisions.</p>'
-        '<span class="wb-badge">🔒 Local-first</span>'
-        '<span class="wb-badge">🎓 Education only</span>'
-        '<span class="wb-badge">≈ Estimates, not guarantees</span>',
-        unsafe_allow_html=True,
-    )
+# Hero: product-style landing section. The small logo is embedded as a data
+# URI so it can live inside the card's HTML (st.image can't be nested there).
+if ICON_FILE.exists():
+    _icon_b64 = base64.b64encode(ICON_FILE.read_bytes()).decode()
+    hero_logo = f'<img src="data:image/png;base64,{_icon_b64}" width="34" alt="">'
+else:
+    hero_logo = "💷"
+
+st.markdown(
+    f'<div class="wb-hero">'
+    f'<div class="wb-hero-kicker">{hero_logo} WiseBudget AI</div>'
+    f'<p class="wb-hero-title">Take control of your spending</p>'
+    f'<p class="wb-hero-sub">Track your money, spot saving opportunities, '
+    f'and learn better financial habits.</p>'
+    f'<span class="wb-badge">🔒 Local-first</span>'
+    f'<span class="wb-badge">🎓 Education only</span>'
+    f'<span class="wb-badge">≈ Estimates, not guarantees</span>'
+    f'</div>',
+    unsafe_allow_html=True,
+)
 
 st.markdown(
     '<div class="wb-disclaimer">This app is for budgeting and financial education only. '
@@ -1199,11 +1540,20 @@ if page == "Dashboard":
 
     summary = helpers.compute_summary(income_view, expenses_view)
 
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Total Income", f"£{summary['total_income']:,.2f}")
-    col2.metric("Total Expenses", f"£{summary['total_expenses']:,.2f}")
-    col3.metric("Remaining Balance", f"£{summary['remaining_balance']:,.2f}")
-    col4.metric("Savings Rate", f"{summary['savings_rate']:.1f}%")
+    render_stat_cards([
+        {"icon": "💷", "label": "Total Income",
+         "value": f"£{summary['total_income']:,.2f}",
+         "help": "Income recorded for this period"},
+        {"icon": "🧾", "label": "Total Expenses",
+         "value": f"£{summary['total_expenses']:,.2f}",
+         "help": "Spending recorded for this period"},
+        {"icon": "💰", "label": "Remaining Balance",
+         "value": f"£{summary['remaining_balance']:,.2f}",
+         "help": "Income minus expenses"},
+        {"icon": "📈", "label": "Savings Rate",
+         "value": f"{summary['savings_rate']:.1f}%",
+         "help": "Money kept after living costs"},
+    ])
 
     st.write("---")
 
@@ -1291,7 +1641,8 @@ if page == "Dashboard":
             goal_name = html.escape(str(goal["goal_name"]))
             st.markdown(
                 f'<div class="wb-goal-card">'
-                f'<div><span class="wb-goal-name">{goal_name}</span>{badge}</div>'
+                f'<div><span class="wb-card-icon">🎯</span>'
+                f'<span class="wb-goal-name">{goal_name}</span>{badge}</div>'
                 f'<div class="wb-goal-bar">'
                 f'<div class="wb-goal-fill" style="width:{min(100.0, progress):.0f}%"></div></div>'
                 f'<div class="wb-goal-stats">'
@@ -1353,16 +1704,16 @@ elif page == "Add Income":
     # Demo Mode shows example data, so adding/editing real records is paused
     # to avoid any confusion between demo rows and the user's own files.
     if st.session_state.get("demo_mode"):
-        st.info(
-            "Demo Mode is on, so the app is showing example data. "
-            "Turn off Demo Mode in the sidebar or the App menu above to add "
-            "and edit your real income."
-        )
+        st.info("🧪 Demo Mode is active. Turn it off to add your own records.")
+        st.caption("The Demo Mode toggle is in the sidebar and the App menu at the top.")
         st.stop()
 
-    st.write(
-        "Use this section to record money coming in, such as salary, tips, "
-        "freelance income, benefits, or other income."
+    st.markdown(
+        '<div class="wb-intro-card">'
+        '<div class="wb-intro-title">Record money coming in.</div>'
+        'Salary, tips, freelance income, benefits, or anything else you receive.'
+        '</div>',
+        unsafe_allow_html=True,
     )
 
     with st.form("income_form"):
@@ -1424,16 +1775,17 @@ elif page == "Add Expense":
 
     # Same demo-mode guard as Add Income (see comment there).
     if st.session_state.get("demo_mode"):
-        st.info(
-            "Demo Mode is on, so the app is showing example data. "
-            "Turn off Demo Mode in the sidebar or the App menu above to add "
-            "and edit your real expenses."
-        )
+        st.info("🧪 Demo Mode is active. Turn it off to add your own records.")
+        st.caption("The Demo Mode toggle is in the sidebar and the App menu at the top.")
         st.stop()
 
-    st.write(
-        "Use this section to record spending. You can choose a category manually "
-        "or use Auto Detect so WiseBudget AI categorises the expense from the description."
+    st.markdown(
+        '<div class="wb-intro-card">'
+        '<div class="wb-intro-title">Track spending and categorise it automatically.</div>'
+        'Pick a category yourself, or choose Auto Detect and WiseBudget AI '
+        'categorises the expense from its description.'
+        '</div>',
+        unsafe_allow_html=True,
     )
 
     categories = ["Auto Detect"] + EXPENSE_CATEGORIES
@@ -1505,9 +1857,17 @@ elif page == "Add Expense":
 
 elif page == "WiseBudget AI Coach":
     st.header("WiseBudget AI Coach")
-    st.caption("Ask questions, review your budget, and explore estimated saving opportunities.")
 
-    # AI status pill (same styling as the sidebar one).
+    st.markdown(
+        '<div class="wb-intro-card">'
+        '<div class="wb-intro-title">Your personal budgeting coach</div>'
+        'Ask WiseBudget AI about your spending, goals, and saving opportunities.'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+    # AI status pill (same styling as the sidebar one). Rule-based mode is a
+    # designed state, not an error - the wording reflects that.
     if ai_ready:
         st.markdown(
             '<span class="wb-ai-pill wb-ai-on">● Local AI connected</span>',
@@ -1515,10 +1875,13 @@ elif page == "WiseBudget AI Coach":
         )
     else:
         st.markdown(
-            '<span class="wb-ai-pill wb-ai-off">● Rule-based mode</span>',
+            '<span class="wb-ai-pill wb-ai-off">● Rule-based mode active</span>',
             unsafe_allow_html=True,
         )
-        st.caption(ai_message)
+        st.caption(
+            "Rule-based mode active — smart checks and saving opportunities "
+            "still work."
+        )
 
     # One shared data pass for every section on this page. Analyses ALL
     # expenses, so estimates are normalised to a monthly average.
@@ -1542,11 +1905,20 @@ elif page == "WiseBudget AI Coach":
 
     # ---- Budget snapshot ----
     st.subheader("Budget snapshot")
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Total Income", f"£{summary['total_income']:,.2f}")
-    col2.metric("Total Expenses", f"£{summary['total_expenses']:,.2f}")
-    col3.metric("Remaining Balance", f"£{summary['remaining_balance']:,.2f}")
-    col4.metric("Savings Rate", f"{summary['savings_rate']:.1f}%")
+    render_stat_cards([
+        {"icon": "💷", "label": "Total Income",
+         "value": f"£{summary['total_income']:,.2f}",
+         "help": "All income recorded"},
+        {"icon": "🧾", "label": "Total Expenses",
+         "value": f"£{summary['total_expenses']:,.2f}",
+         "help": "All spending recorded"},
+        {"icon": "💰", "label": "Remaining Balance",
+         "value": f"£{summary['remaining_balance']:,.2f}",
+         "help": "Income minus expenses"},
+        {"icon": "📈", "label": "Savings Rate",
+         "value": f"{summary['savings_rate']:.1f}%",
+         "help": "Money kept after living costs"},
+    ])
 
     st.write("---")
 
@@ -1591,8 +1963,9 @@ elif page == "WiseBudget AI Coach":
     with st.container(border=True):
         if not ai_ready:
             st.info(
-                ai_message
-                + " The rule-based Quick checks above still work without local AI."
+                "Rule-based mode active — smart checks and saving opportunities "
+                "still work. Connecting a local Ollama model enables this "
+                "optional AI analysis."
             )
         elif summary["total_income"] <= 0:
             st.warning("Add some income first so the AI has something to analyse.")
@@ -1609,8 +1982,9 @@ elif page == "WiseBudget AI Coach":
     st.subheader("💬 Chat with WiseBudget AI")
     if not ai_ready:
         st.info(
-            "The chat assistant needs local AI (Ollama), which isn't available "
-            "in this cloud demo. Everything above still works in rule-based mode."
+            "Rule-based mode active — smart checks and saving opportunities "
+            "still work. The chat assistant needs a local Ollama model, which "
+            "isn't available in this cloud demo."
         )
     else:
         client = ai_helper.get_client(ollama_host)
@@ -1668,14 +2042,16 @@ elif page == "WiseBudget AI Coach":
 elif page == "Savings Goals":
     st.header("Savings Goals")
 
-    st.write("Use this section to create savings goals and track progress towards them.")
+    st.markdown(
+        '<div class="wb-intro-card">'
+        '<div class="wb-intro-title">Save towards what matters.</div>'
+        'Create savings goals and track your progress towards them.'
+        '</div>',
+        unsafe_allow_html=True,
+    )
 
     if st.session_state.get("demo_mode"):
-        st.info(
-            "Demo Mode is on - the goals below are examples. "
-            "Turn off Demo Mode in the sidebar or the App menu above to add "
-            "your own goals."
-        )
+        st.info("🧪 Demo Mode is active. Turn it off to add your own goals.")
     else:
         with st.form("goals_form"):
             goal_name = st.text_input("Goal name", placeholder="Example: Emergency Fund")
@@ -1713,22 +2089,32 @@ elif page == "Savings Goals":
     if goals_data.empty:
         st.write("No savings goals added yet.")
     else:
+        # Each goal as a branded card (same style as the Dashboard overview):
+        # icon + name, status badge, progress bar and the key figures.
         for _, goal in goals_data.iterrows():
-            st.write("---")
-            heading = f"### {goal['goal_name']}"
-            st.write(heading)
+            progress = float(goal["progress_percentage"])
             if goal.get("is_overdue"):
-                st.warning("This goal's deadline has passed and it isn't complete yet.")
+                badge = '<span class="wb-goal-badge wb-goal-late">Deadline passed</span>'
+            elif progress >= 100:
+                badge = '<span class="wb-goal-badge wb-goal-done">Complete</span>'
+            else:
+                badge = '<span class="wb-goal-badge wb-goal-ok">In progress</span>'
 
-            st.progress(int(goal["progress_percentage"]))
-
-            metric_col1, metric_col2, metric_col3 = st.columns(3)
-            metric_col1.metric("Target", f"£{goal['target_amount']:,.2f}")
-            metric_col2.metric("Saved", f"£{goal['current_amount']:,.2f}")
-            metric_col3.metric("Remaining", f"£{goal['remaining_amount']:,.2f}")
-
-            st.write(f"Progress: **{goal['progress_percentage']:.1f}%**")
-            st.write(f"Deadline: **{goal['deadline']}**")
+            goal_name = html.escape(str(goal["goal_name"]))
+            st.markdown(
+                f'<div class="wb-goal-card">'
+                f'<div><span class="wb-card-icon">🎯</span>'
+                f'<span class="wb-goal-name">{goal_name}</span>{badge}</div>'
+                f'<div class="wb-goal-bar">'
+                f'<div class="wb-goal-fill" style="width:{min(100.0, progress):.0f}%"></div></div>'
+                f'<div class="wb-goal-stats">'
+                f'Saved <b>£{goal["current_amount"]:,.2f}</b> of '
+                f'<b>£{goal["target_amount"]:,.2f}</b> ({progress:.1f}%) - '
+                f'£{goal["remaining_amount"]:,.2f} remaining - '
+                f'deadline {goal["deadline"]}</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
 
     st.write("---")
     st.subheader("Edit or delete goals")
@@ -1764,8 +2150,15 @@ elif page == "Savings Goals":
 
 elif page == "Feedback":
     st.header("Feedback")
+
+    st.markdown(
+        '<div class="wb-intro-card">'
+        '<div class="wb-intro-title">Help improve WiseBudget AI</div>'
+        'Share what worked, what confused you, and what you would add.'
+        '</div>',
+        unsafe_allow_html=True,
+    )
     st.caption(
-        "Testing WiseBudget AI? Your feedback shapes what gets improved next. "
         "In the local version, feedback is saved to CSV. In the cloud demo, "
         "feedback may not persist after the app restarts."
     )
@@ -1841,6 +2234,15 @@ elif page == "Feedback":
 elif page == "Investment Learning Hub":
     st.header("Investment Learning Hub")
 
+    st.markdown(
+        '<div class="wb-intro-card">'
+        '<div class="wb-intro-title">Learn the ideas before the products.</div>'
+        'Plain-English explanations of core money concepts. Education only - '
+        'no recommendations.'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
     st.warning(
         "This section is for investment education only. "
         "It does not provide personal financial advice."
@@ -1853,19 +2255,28 @@ elif page == "Investment Learning Hub":
     )
 
     st.subheader("Key Investing Concepts")
-    st.write(
-        """
-        **Risk:** Investments can go up or down in value.
-
-        **Diversification:** Spreading money across different assets can reduce risk.
-
-        **Compound Growth:** Money can grow over time when returns are reinvested.
-
-        **Long-Term Thinking:** Investing is usually more suitable for long-term goals, not short-term spending needs.
-
-        **Emergency Fund:** Money kept aside for unexpected expenses before taking investment risk.
-        """
+    # Concept cards: fixed educational copy only (no advice, no products).
+    edu_cards = [
+        ("⚖️", "Risk", "Investments can go up or down in value."),
+        ("🧺", "Diversification",
+         "Spreading money across different assets can reduce risk."),
+        ("📈", "Compound growth",
+         "Money can grow over time when returns are reinvested."),
+        ("🛟", "Emergency fund",
+         "Money kept aside for unexpected expenses before taking investment risk."),
+        ("⏳", "Long-term thinking",
+         "Investing is usually more suitable for long-term goals, not "
+         "short-term spending needs."),
+    ]
+    edu_html = "".join(
+        '<div class="wb-edu-card">'
+        f'<span class="wb-edu-icon">{icon}</span>'
+        f'<div class="wb-edu-title">{title}</div>'
+        f'<div class="wb-edu-text">{text}</div>'
+        '</div>'
+        for icon, title, text in edu_cards
     )
+    st.markdown(f'<div class="wb-edu-grid">{edu_html}</div>', unsafe_allow_html=True)
 
     st.subheader("Educational Note")
     st.info(
