@@ -202,57 +202,91 @@ def clean_edited_table(edited, key_field, has_category=False):
 
 def get_demo_data():
     """
-    Return (income, expenses, goals) DataFrames full of realistic example UK
-    budgeting data covering the last 3 months, so month filtering, trends and
-    saving estimates can all be demonstrated.
+    Return (income, expenses, goals) DataFrames of realistic but ENTIRELY
+    SYNTHETIC UK budgeting data covering the last 6 months, so month filtering,
+    trends, saving opportunities and projections can all be demonstrated.
 
-    Demo Mode only READS this data - the real CSV files are never touched.
+    This is invented example data for a fictional person - it is NOT anyone's
+    real bank data, contains no real account details, and is safe to show in a
+    public demo. Demo Mode only READS this; the real CSV files are never touched.
     The rows are deterministic (no randomness) so every demo looks the same.
+
+    Some rows use a per-month value of 0.0 to mean "did not happen this month"
+    (e.g. an occasional restaurant or train ticket); those are dropped at the
+    end, which keeps each month looking a little different.
     """
     today = pd.Timestamp(date.today())
-    # Oldest to newest: two months ago, last month, this month.
-    months = [today.to_period("M") - offset for offset in (2, 1, 0)]
+    # Six months of data, oldest to newest.
+    months = [today.to_period("M") - offset for offset in range(5, -1, -1)]
 
     income_rows = []
     expense_rows = []
 
-    for index, month in enumerate(months):
+    for i, month in enumerate(months):
         first_day = month.start_time
 
         def day(day_number):
             return (first_day + pd.Timedelta(days=day_number - 1)).strftime("%Y-%m-%d")
 
-        income_rows.append({"date": day(1), "source": "Salary", "amount": 2200.0})
-        if index == 1:
-            income_rows.append({"date": day(15), "source": "Freelance project", "amount": 150.0})
+        # ---- Income: monthly salary, plus occasional freelance ----
+        income_rows.append({"date": day(28), "source": "Salary - Meridian Care Ltd", "amount": 2420.00})
+        if i in (1, 4):
+            income_rows.append({"date": day(15), "source": "Freelance design work", "amount": 185.00})
 
-        # A realistic month of spending; small per-month variations keep the
-        # trend table interesting. Index picks this month's value.
+        # ---- Recurring bills & subscriptions (steady each month) ----
         expense_rows += [
-            {"date": day(1), "description": "Rent", "amount": 850.0, "category": "Rent"},
-            {"date": day(2), "description": "British Gas energy bill", "amount": [92.0, 96.5, 89.0][index], "category": "Bills"},
-            {"date": day(3), "description": "EE phone bill", "amount": 24.99, "category": "Bills"},
-            {"date": day(3), "description": "BT broadband", "amount": 31.99, "category": "Bills"},
-            {"date": day(4), "description": "Netflix", "amount": 12.99, "category": "Subscriptions"},
-            {"date": day(4), "description": "Spotify", "amount": 11.99, "category": "Subscriptions"},
-            {"date": day(5), "description": "PureGym membership", "amount": 24.99, "category": "Health"},
-            {"date": day(6), "description": "TfL Oyster top-up", "amount": 44.0, "category": "Transport"},
-            {"date": day(20), "description": "TfL Oyster top-up", "amount": [38.0, 42.0, 35.0][index], "category": "Transport"},
-            {"date": day(7), "description": "Tesco groceries", "amount": [46.20, 51.80, 43.60][index], "category": "Food"},
-            {"date": day(12), "description": "Aldi shopping", "amount": [38.40, 35.10, 41.00][index], "category": "Food"},
-            {"date": day(19), "description": "Lidl shopping", "amount": [24.60, 27.90, 22.30][index], "category": "Food"},
-            {"date": day(26), "description": "Sainsburys groceries", "amount": [31.00, 28.40, 33.70][index], "category": "Food"},
-            {"date": day(14), "description": "Deliveroo takeaway", "amount": [18.50, 22.40, 16.90][index], "category": "Food"},
-            {"date": day(22), "description": "Uber Eats takeaway", "amount": [21.00, 17.50, 24.80][index], "category": "Food"},
-            {"date": day(16), "description": "Amazon order", "amount": [23.50, 39.99, 18.75][index], "category": "Shopping"},
-            {"date": day(23), "description": "Cinema tickets", "amount": 12.50, "category": "Entertainment"},
-            {"date": day(25), "description": "Klarna payment", "amount": 45.0, "category": "Debt Repayment"},
-            {"date": day(28), "description": "Transfer to savings", "amount": 200.0, "category": "Savings"},
+            {"date": day(1),  "description": "Rent - Oakfield Lettings", "amount": 950.00, "category": "Rent"},
+            {"date": day(3),  "description": "British Gas energy", "amount": [88.40, 92.10, 79.50, 71.20, 96.80, 90.30][i], "category": "Bills"},
+            {"date": day(4),  "description": "Thames Water", "amount": 34.50, "category": "Bills"},
+            {"date": day(5),  "description": "EE mobile", "amount": 26.99, "category": "Bills"},
+            {"date": day(5),  "description": "BT broadband", "amount": 33.99, "category": "Bills"},
+            {"date": day(6),  "description": "Netflix", "amount": 12.99, "category": "Subscriptions"},
+            {"date": day(6),  "description": "Spotify", "amount": 11.99, "category": "Subscriptions"},
+            {"date": day(7),  "description": "Disney Plus", "amount": 7.99, "category": "Subscriptions"},
+            {"date": day(7),  "description": "iCloud storage", "amount": 2.99, "category": "Subscriptions"},
+            {"date": day(8),  "description": "PureGym membership", "amount": 24.99, "category": "Health"},
         ]
-        if index == 0:
-            expense_rows.append(
-                {"date": day(17), "description": "Zara clothes", "amount": 49.99, "category": "Shopping"}
-            )
+
+        # ---- Groceries: several shops a month, amounts vary ----
+        expense_rows += [
+            {"date": day(2),  "description": "Tesco groceries", "amount": [58.20, 61.40, 54.90, 63.10, 49.80, 57.30][i], "category": "Food"},
+            {"date": day(9),  "description": "Aldi shopping", "amount": [37.60, 33.20, 41.10, 29.80, 44.50, 35.70][i], "category": "Food"},
+            {"date": day(16), "description": "Sainsburys groceries", "amount": [42.10, 45.80, 38.60, 47.20, 40.30, 43.90][i], "category": "Food"},
+            {"date": day(23), "description": "Lidl shopping", "amount": [26.40, 22.90, 30.10, 24.60, 28.70, 21.50][i], "category": "Food"},
+        ]
+
+        # ---- Takeaways / eating out ----
+        expense_rows += [
+            {"date": day(12), "description": "Deliveroo", "amount": [19.50, 24.30, 16.80, 27.40, 21.10, 18.60][i], "category": "Food"},
+            {"date": day(25), "description": "Uber Eats", "amount": [22.80, 17.60, 26.40, 19.90, 23.50, 20.20][i], "category": "Food"},
+            {"date": day(19), "description": "Nandos", "amount": [0.0, 28.40, 0.0, 31.20, 0.0, 26.80][i], "category": "Food"},
+        ]
+
+        # ---- Transport ----
+        expense_rows += [
+            {"date": day(2),  "description": "TfL travel", "amount": [78.00, 82.50, 74.00, 88.00, 71.50, 80.00][i], "category": "Transport"},
+            {"date": day(17), "description": "Trainline ticket", "amount": [0.0, 34.80, 0.0, 0.0, 42.30, 0.0][i], "category": "Transport"},
+            {"date": day(21), "description": "Uber", "amount": [14.20, 0.0, 18.60, 11.40, 0.0, 16.90][i], "category": "Transport"},
+        ]
+
+        # ---- Shopping / entertainment / health ----
+        expense_rows += [
+            {"date": day(14), "description": "Amazon order", "amount": [31.50, 47.99, 22.40, 55.20, 18.90, 39.60][i], "category": "Shopping"},
+            {"date": day(18), "description": "ASOS clothes", "amount": [0.0, 0.0, 48.00, 0.0, 62.50, 0.0][i], "category": "Shopping"},
+            {"date": day(20), "description": "Cineworld tickets", "amount": [0.0, 25.00, 0.0, 25.00, 0.0, 25.00][i], "category": "Entertainment"},
+            {"date": day(27), "description": "The Crown pub", "amount": [24.60, 31.80, 19.40, 28.70, 22.10, 26.30][i], "category": "Entertainment"},
+            {"date": day(11), "description": "Boots pharmacy", "amount": [0.0, 12.80, 0.0, 9.40, 0.0, 14.20][i], "category": "Health"},
+        ]
+
+        # ---- Debt & savings ----
+        expense_rows += [
+            {"date": day(26), "description": "Capital One credit card", "amount": 65.00, "category": "Debt Repayment"},
+            {"date": day(10), "description": "Klarna payment", "amount": [0.0, 30.00, 30.00, 0.0, 45.00, 30.00][i], "category": "Debt Repayment"},
+            {"date": day(28), "description": "Transfer to savings pot", "amount": 250.00, "category": "Savings"},
+        ]
+
+    # Drop the "did not happen this month" placeholder rows (amount 0).
+    expense_rows = [row for row in expense_rows if row["amount"] > 0]
 
     income = pd.DataFrame(income_rows, columns=INCOME_COLUMNS)
     expenses = pd.DataFrame(expense_rows, columns=EXPENSES_COLUMNS)
@@ -262,14 +296,20 @@ def get_demo_data():
             {
                 "goal_name": "Emergency Fund",
                 "target_amount": 3000.0,
-                "current_amount": 1250.0,
+                "current_amount": 1500.0,
                 "deadline": (today + pd.Timedelta(days=180)).strftime("%Y-%m-%d"),
             },
             {
-                "goal_name": "Holiday",
+                "goal_name": "Holiday to Spain",
                 "target_amount": 1500.0,
-                "current_amount": 400.0,
-                "deadline": (today + pd.Timedelta(days=330)).strftime("%Y-%m-%d"),
+                "current_amount": 620.0,
+                "deadline": (today + pd.Timedelta(days=300)).strftime("%Y-%m-%d"),
+            },
+            {
+                "goal_name": "New Laptop",
+                "target_amount": 900.0,
+                "current_amount": 300.0,
+                "deadline": (today + pd.Timedelta(days=120)).strftime("%Y-%m-%d"),
             },
         ],
         columns=GOALS_COLUMNS,
@@ -283,6 +323,21 @@ def get_demo_data():
 # ============================================================
 
 ALL_TIME = "All time"
+
+
+def format_month_label(month):
+    """
+    Turn a "YYYY-MM" period string into a friendly label like "July 2026".
+    Leaves "All time" (and anything unparseable) unchanged. Used so the UI can
+    show readable month names while the underlying value stays "YYYY-MM" for
+    filtering.
+    """
+    if month == ALL_TIME:
+        return month
+    try:
+        return pd.to_datetime(str(month), format="%Y-%m").strftime("%B %Y")
+    except (ValueError, TypeError):
+        return str(month)
 
 
 def get_month_options(*dataframes):
@@ -532,8 +587,8 @@ def generate_budget_insights(
 ):
     """
     Generates budgeting insights using simple rules.
-    Used directly when no Claude API key is configured, and as background
-    context the AI assistant can build on.
+    Used directly when the local AI is unavailable, and as background context
+    the AI assistant can build on when it is running.
     """
     insights = []
 
@@ -929,6 +984,35 @@ SAVING_RULES = [
     },
 ]
 
+# A short, concrete "how you'd actually get this saving" phrase per rule, so the
+# estimate never feels like a number out of nowhere. It names the main lever(s)
+# (e.g. a railcard, a cheaper tariff) - the fuller checklist is in each rule's
+# "actions". Deliberately generic (no named provider, no invented price).
+SAVING_HOW = {
+    "energy": "comparing energy tariffs and moving to a cheaper or fixed plan, "
+              "with up-to-date meter readings",
+    "mobile": "switching to a cheaper SIM-only deal that matches how much data "
+              "you actually use",
+    "broadband": "haggling your renewal price or switching when your contract "
+                 "ends, instead of rolling onto out-of-contract pricing",
+    "subscriptions": "cancelling or downgrading services you rarely use, or "
+                     "rotating them month to month",
+    "food": "planning meals, cutting takeaways and food delivery, and comparing "
+            "own-brand ranges between supermarkets",
+    "transport": "using a railcard or travelcard, and cutting frequent "
+                 "ride-hailing where you can",
+    "debt": "putting any spare money toward the highest-interest balance first "
+            "so less is lost to interest over time",
+    "shopping": "setting a monthly cap and giving yourself a 48-hour pause "
+                "before non-essential buys",
+    "entertainment": "setting a monthly limit and swapping some paid nights out "
+                     "for cheaper or free options",
+    "gym_health": "switching to a cheaper or off-peak gym, or pausing a "
+                  "membership you are not really using",
+    "education": "using free learning resources first and claiming any student "
+                 "or other discounts",
+}
+
 # Quick lookup by rule key (e.g. to give Food priority over Shopping below).
 _SAVING_RULES_BY_KEY = {rule["key"]: rule for rule in SAVING_RULES}
 
@@ -1070,6 +1154,8 @@ def generate_saving_opportunities(expenses_data, income_data=None, months_covere
             # (shown and totalled differently by the UI).
             "saving_kind": rule.get("saving_kind", "saving"),
             "disclaimer": rule.get("disclaimer", SAVING_DISCLAIMER),
+            # A concrete "how you'd get this saving" phrase for the UI.
+            "how_to_save": SAVING_HOW.get(rule["key"], "following the steps below"),
         })
 
     # Surface the biggest, most important opportunities first.
@@ -1139,6 +1225,7 @@ def top_saving_actions(opportunities, limit=3):
         actions.append({
             "short_title": short_title,
             "priority": opp["priority"],
+            "current_amount": opp["current_amount"],   # what they spend now
             "monthly_low": opp["estimated_monthly_saving_low"],
             "monthly_high": opp["estimated_monthly_saving_high"],
             "next_step": opp["action_steps"][0] if opp["action_steps"] else "Review this cost.",
@@ -1166,3 +1253,106 @@ def category_breakdown_table(expenses_data):
             for amount in totals.values
         ],
     })
+
+
+# ============================================================
+# Projections (long-term "what if" illustrations)
+# ============================================================
+#
+# These turn a monthly amount into a long-term picture: how a regular saving
+# builds up, or what a recurring cost adds up to, over several years.
+#
+# Important safety design (keeps this within the education-only rules):
+#   - With a 0% rate this is STRAIGHT ACCUMULATION - money set aside, no growth.
+#   - Any growth rate is one the USER types in (default 0), so the app never
+#     invents an interest rate, APR or investment return.
+#   - Every result is a simple ILLUSTRATION, not a prediction, guarantee, or
+#     personal financial/investment advice. The UI labels it that way.
+
+# Time horizons shown in the projection tables (label, number of months).
+PROJECTION_HORIZONS = [
+    ("6 months", 6),
+    ("1 year", 12),
+    ("2 years", 24),
+    ("5 years", 60),
+    ("10 years", 120),
+]
+
+
+def project_savings(monthly_amount, months, annual_growth_percent=0.0, starting_amount=0.0):
+    """
+    Illustrate the future value of setting aside `monthly_amount` each month for
+    `months` months, starting from `starting_amount`, optionally growing at a
+    user-chosen `annual_growth_percent` a year (compounded monthly).
+
+    This is an educational illustration only - NOT a prediction, guarantee, or
+    investment advice. With a 0% rate it is simple accumulation (no growth), and
+    any rate above 0 is one the user chose, so the app never invents a return.
+
+    Returns a dict:
+      months        - horizon in months
+      starting      - the starting amount
+      contributions - total the person puts in over the period (monthly * months)
+      deposits      - starting + contributions (all money actually set aside)
+      growth        - the illustrative growth on top (0 when the rate is 0)
+      total         - projected total (deposits + growth)
+    """
+    monthly_amount = max(0.0, float(monthly_amount or 0))
+    starting_amount = max(0.0, float(starting_amount or 0))
+    months = max(0, int(months))
+    monthly_rate = max(0.0, float(annual_growth_percent or 0)) / 100.0 / 12.0
+
+    contributions = monthly_amount * months
+    if monthly_rate == 0:
+        total = starting_amount + contributions
+    else:
+        growth_factor = (1 + monthly_rate) ** months
+        total = (
+            starting_amount * growth_factor
+            + monthly_amount * ((growth_factor - 1) / monthly_rate)
+        )
+
+    deposits = starting_amount + contributions
+    growth = total - deposits
+
+    return {
+        "months": months,
+        "starting": round(starting_amount, 2),
+        "contributions": round(contributions, 2),
+        "deposits": round(deposits, 2),
+        "growth": round(growth, 2),
+        "total": round(total, 2),
+    }
+
+
+def savings_projection_table(monthly_amount, annual_growth_percent=0.0,
+                             starting_amount=0.0, horizons=None):
+    """
+    Run project_savings across each time horizon and return a tidy DataFrame:
+    Period, You set aside, Illustrative growth, Projected total.
+    """
+    horizons = horizons or PROJECTION_HORIZONS
+    rows = []
+    for label, months in horizons:
+        result = project_savings(monthly_amount, months, annual_growth_percent, starting_amount)
+        rows.append({
+            "Period": label,
+            "You set aside": result["deposits"],
+            "Illustrative growth": result["growth"],
+            "Projected total": result["total"],
+        })
+    return pd.DataFrame(rows, columns=["Period", "You set aside", "Illustrative growth", "Projected total"])
+
+
+def expense_cost_table(monthly_amount, horizons=None):
+    """
+    Show what a recurring cost of `monthly_amount` a month adds up to over time
+    (straight accumulation, no growth). Returns a DataFrame: Period, Total cost.
+    """
+    horizons = horizons or PROJECTION_HORIZONS
+    monthly_amount = max(0.0, float(monthly_amount or 0))
+    rows = [
+        {"Period": label, "Total cost": round(monthly_amount * months, 2)}
+        for label, months in horizons
+    ]
+    return pd.DataFrame(rows, columns=["Period", "Total cost"])
