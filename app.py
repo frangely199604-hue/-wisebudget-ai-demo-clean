@@ -1,15 +1,15 @@
 import base64
 import html
-import io
 
+import altair as alt
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
 from datetime import date, datetime
 from pathlib import Path
 
 import helpers
 import ai_helper
+import i18n
 from helpers import (
     INCOME_FILE,
     EXPENSES_FILE,
@@ -33,6 +33,18 @@ ASSETS_FOLDER = Path("assets")
 LOGO_FILE = ASSETS_FOLDER / "wisebudget-logo.png"
 ICON_FILE = ASSETS_FOLDER / "wisebudget-icon.png"
 
+# ============================================================
+# Build switch - the ONLY line that differs between the two copies of this app.
+#   True  -> public cloud DEMO (Streamlit Cloud): Demo Mode defaults ON, shows a
+#            "public demo, don't enter private data" note, AI wording assumes no
+#            local Ollama.
+#   False -> PRIVATE local build (your own machine, your real CSV data): Demo
+#            Mode defaults OFF so you see your real data, no public-demo note,
+#            local-flavoured wording.
+# Keep everything else identical so the two copies stay in sync.
+# ============================================================
+IS_CLOUD_DEMO = True
+
 st.set_page_config(
     page_title="WiseBudget AI",
     page_icon=str(ICON_FILE) if ICON_FILE.exists() else "💷",
@@ -50,6 +62,10 @@ def inject_custom_css():
     """
     st.markdown("""
     <style>
+    /* Premium type. Falls back to the system stack if the network blocks it,
+       so nothing breaks offline or under a strict CSP. */
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
     /* ============================================================
        Base app styling
        ============================================================ */
@@ -447,19 +463,23 @@ def inject_custom_css():
         font-weight: 800;
     }
 
+    /* Priority = spending "zone": red (high), amber (medium), green (low). */
     .wb-priority-high {
-        background: #FEF3C7;
-        color: #92400E !important;
+        background: #FEE2E2;
+        color: #991B1B !important;
+        border: 1px solid #FCA5A5;
     }
 
     .wb-priority-medium {
-        background: #E0EAFF;
-        color: #1E3A8A !important;
+        background: #FEF3C7;
+        color: #92400E !important;
+        border: 1px solid #FCD34D;
     }
 
     .wb-priority-low {
         background: #D1FAE5;
         color: #065F46 !important;
+        border: 1px solid #6EE7B7;
     }
 
     .wb-summary-card {
@@ -927,6 +947,173 @@ def inject_custom_css():
             font-size: 0.85rem !important;
         }
     }
+
+    /* ============================================================
+       PREMIUM LAYER - richer surfaces, depth, type and motion.
+       Declared last so it refines the rules above. Uses extra
+       specificity where it must beat the readability !important rules.
+       ============================================================ */
+
+    /* Apply the body font to text containers only. Do NOT target bare spans:
+       Streamlit renders its expander/sidebar arrow ICONS as spans in a Material
+       icon font, and forcing Inter on them makes the icon show its ligature
+       source text (e.g. "keyboard_arrow_right") instead of the arrow glyph. */
+    html, body, .stApp, .stApp p, .stApp div, .stApp label, .stApp li,
+    .stApp td, .stApp th, input, textarea, select, .stButton > button {
+        font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+    }
+    /* Belt-and-braces: never override Streamlit's icon fonts. */
+    [data-testid="stIconMaterial"], span[data-testid="stIconMaterial"],
+    .material-icons, .material-symbols-outlined, .material-symbols-rounded,
+    [class*="material-symbols"], [class*="material-icons"] {
+        font-family: 'Material Symbols Outlined', 'Material Symbols Rounded',
+                     'Material Icons', sans-serif !important;
+    }
+    h1, h2, h3, h4, h5, h6,
+    .wb-hero-title, .wb-header-title, .wb-stat-value,
+    .wb-payoff-value, .wb-action-title, .wb-goal-name {
+        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif !important;
+    }
+
+    /* Softer, richer ambient background. */
+    .stApp {
+        background:
+            radial-gradient(1100px 560px at 12% -6%, rgba(16,185,129,0.13), transparent 60%),
+            radial-gradient(820px 460px at 108% 8%, rgba(56,189,248,0.09), transparent 55%),
+            linear-gradient(180deg, #F5F8FB 0%, #EFF5F3 58%, #ECFDF5 100%) !important;
+        background-attachment: fixed !important;
+    }
+
+    /* ---- Hero: deep navy -> emerald, glassy glow, white type ---- */
+    .wb-hero {
+        background: linear-gradient(135deg, #071A2D 0%, #0C2C46 52%, #0E5247 100%) !important;
+        border: 1px solid rgba(255,255,255,0.08) !important;
+        border-radius: 24px !important;
+        padding: 1.7rem 1.7rem 1.5rem !important;
+        box-shadow: 0 24px 60px -18px rgba(7,26,45,0.55), inset 0 1px 0 rgba(255,255,255,0.07) !important;
+        position: relative;
+        overflow: hidden;
+    }
+    .wb-hero::after {
+        content: "";
+        position: absolute; top: -45%; right: -8%;
+        width: 360px; height: 360px;
+        background: radial-gradient(circle, rgba(16,185,129,0.40), transparent 68%);
+        pointer-events: none;
+    }
+    .wb-hero > * { position: relative; z-index: 1; }
+    .stApp .wb-hero-kicker { color: #6EE7B7 !important; letter-spacing: 0.14em; }
+    .stApp .wb-hero-kicker img { border-radius: 9px; box-shadow: 0 2px 8px rgba(0,0,0,0.35); }
+    .stApp .wb-hero-title {
+        color: #FFFFFF !important;
+        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif !important;
+        font-size: 2.2rem !important; font-weight: 800 !important;
+        letter-spacing: -0.03em !important;
+    }
+    .stApp .wb-hero-sub { color: rgba(226,240,248,0.86) !important; max-width: 34rem; }
+    .wb-hero .wb-badge {
+        background: rgba(255,255,255,0.13) !important;
+        border: 1px solid rgba(255,255,255,0.22) !important;
+        box-shadow: none !important;
+        backdrop-filter: blur(4px);
+    }
+    .stApp .wb-hero .wb-badge, .stApp .wb-hero .wb-badge * { color: #EAF3F8 !important; }
+
+    /* ---- Stat cards: icon chip, layered shadow, hover lift ---- */
+    .wb-stat-card {
+        background: linear-gradient(180deg, #FFFFFF 0%, #F6FBFA 100%) !important;
+        border: 1px solid rgba(226,232,240,0.85) !important;
+        border-radius: 18px !important;
+        padding: 1rem 1.1rem 0.95rem !important;
+        box-shadow: 0 12px 32px -14px rgba(7,26,45,0.20), 0 2px 6px rgba(7,26,45,0.05) !important;
+        transition: transform .18s ease, box-shadow .18s ease;
+    }
+    .wb-stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 20px 42px -16px rgba(7,26,45,0.30), 0 3px 8px rgba(7,26,45,0.06) !important;
+    }
+    .wb-stat-icon {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 2.15rem; height: 2.15rem; border-radius: 13px;
+        background: linear-gradient(135deg, #ECFDF5, #D1FAE5);
+        box-shadow: inset 0 0 0 1px rgba(16,185,129,0.18);
+        margin-bottom: 0.15rem;
+    }
+    .stApp .wb-stat-value { font-size: 1.72rem !important; letter-spacing: -0.02em; }
+
+    /* ---- Section headers get a slim emerald accent bar ---- */
+    .stApp h3 { position: relative; padding-left: 0.85rem; }
+    .stApp h3::before {
+        content: ""; position: absolute; left: 0; top: 0.16em; bottom: 0.16em;
+        width: 4px; border-radius: 4px;
+        background: linear-gradient(180deg, #10B981, #34D399);
+    }
+
+    /* ---- Expanders: rounder, softer, gradient header ---- */
+    [data-testid="stExpander"] {
+        border-radius: 18px !important;
+        border: 1px solid rgba(226,232,240,0.9) !important;
+        box-shadow: 0 12px 30px -16px rgba(7,26,45,0.20) !important;
+    }
+    [data-testid="stExpander"] summary {
+        background: linear-gradient(180deg, #FBFDFF 0%, #F3F8FB 100%) !important;
+        padding: 0.9rem 1.1rem !important;
+        font-size: 1rem !important;
+        transition: background .15s ease;
+    }
+    [data-testid="stExpander"] summary:hover {
+        background: linear-gradient(180deg, #F1FBF7 0%, #E9F6F1 100%) !important;
+    }
+
+    /* ---- Buttons: emerald gradient + glow ---- */
+    .stButton > button, .stFormSubmitButton > button {
+        background: linear-gradient(135deg, #10B981 0%, #059669 100%) !important;
+        border-radius: 14px !important;
+        box-shadow: 0 10px 22px -10px rgba(16,185,129,0.60) !important;
+        letter-spacing: 0.01em;
+    }
+    .stButton > button:hover, .stFormSubmitButton > button:hover {
+        box-shadow: 0 14px 28px -10px rgba(16,185,129,0.68) !important;
+        transform: translateY(-2px);
+    }
+
+    /* ---- Payoff box (estimated saving, shown after the actions) ---- */
+    .wb-payoff {
+        background: linear-gradient(135deg, #ECFDF5 0%, #E4F8EF 100%);
+        border: 1px solid #A7F3D0;
+        border-radius: 14px;
+        padding: 0.8rem 1rem;
+        margin: 0.5rem 0 0.25rem;
+        box-shadow: 0 10px 24px -12px rgba(16,185,129,0.40);
+    }
+    [data-testid="stExpander"] .wb-payoff .wb-payoff-label {
+        color: #047857 !important; font-size: 0.74rem; font-weight: 800;
+        text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    [data-testid="stExpander"] .wb-payoff .wb-payoff-value {
+        color: #065F46 !important; font-weight: 800; font-size: 1.3rem;
+        line-height: 1.2; margin-top: 0.12rem;
+    }
+    [data-testid="stExpander"] .wb-payoff .wb-payoff-year { color: #059669 !important; font-size: 1.02rem; font-weight: 700; }
+    [data-testid="stExpander"] .wb-payoff .wb-payoff-unit { color: #10B981 !important; font-size: 0.8rem; font-weight: 600; }
+    [data-testid="stExpander"] .wb-payoff .wb-payoff-sub { color: #047857 !important; font-size: 0.8rem; margin-top: 0.25rem; }
+
+    /* ---- Summary + intro cards: softer premium shadow ---- */
+    .wb-summary-card, .wb-intro-card {
+        box-shadow: 0 12px 30px -16px rgba(7,26,45,0.18) !important;
+        border-radius: 16px !important;
+    }
+
+    [data-testid="stSidebar"] { box-shadow: 2px 0 24px -18px rgba(7,26,45,0.35); }
+
+    /* ---- Mobile refinements for the premium layer ---- */
+    @media (max-width: 768px) {
+        .wb-hero { padding: 1.2rem 1.15rem 1.05rem !important; border-radius: 20px !important; }
+        .stApp .wb-hero-title { font-size: 1.6rem !important; }
+        .stApp .wb-stat-value { font-size: 1.32rem !important; }
+        [data-testid="stExpander"] .wb-payoff .wb-payoff-value { font-size: 1.12rem; }
+        [data-testid="stExpander"] .wb-payoff .wb-payoff-year { display: block; margin-top: 0.15rem; }
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -939,6 +1126,15 @@ helpers.ensure_all_csv_files()
 # ============================================================
 # Small UI helpers
 # ============================================================
+
+def L(text):
+    """
+    Translate a UI string into the language the user picked (English is the
+    source of truth, so anything untranslated falls back to English). Used to
+    wrap interface labels, headings and buttons.
+    """
+    return i18n.t(text, st.session_state.get("lang", "en"))
+
 
 def show_insight(insight_type, message):
     """Render a (type, message) insight tuple with the right Streamlit style."""
@@ -1030,37 +1226,30 @@ def render_top_actions(opportunities):
             f'{action["priority"]}</span>'
         )
         icon = action_icon(action["short_title"])
+        # Show what they currently spend, THEN the estimated saving off it, so
+        # the numbers make sense together (spend -> possible saving).
         st.markdown(
             f'<div class="wb-action-card">'
             f'<div class="wb-action-title"><span class="wb-card-icon">{icon}</span>'
             f'{action["short_title"]} {badge}</div>'
-            f'<div class="wb-action-saving">Est. £{action["monthly_low"]:,.2f} to '
+            f'<div class="wb-action-step">You currently spend about '
+            f'<b>£{action["current_amount"]:,.2f}/month</b> on this.</div>'
+            f'<div class="wb-action-saving">Potential saving: £{action["monthly_low"]:,.2f} to '
             f'£{action["monthly_high"]:,.2f} / month</div>'
             f'<div class="wb-action-step">Next step: {action["next_step"]}</div>'
             f'</div>',
             unsafe_allow_html=True,
         )
     st.caption(
-        "Estimated ranges only, not guaranteed savings. "
-        "Debt repayment is shown separately as a potential interest reduction."
+        "Savings are estimated ranges, not guarantees, based on a share of what "
+        "you currently spend. Debt repayment is shown separately as a potential "
+        "interest reduction."
     )
 
 
 # The user can choose how to view spending - different testers prefer
 # different formats (ranked list stays the default).
 SPENDING_VIEW_OPTIONS = ["Ranked list", "Percentages", "Bar chart", "Pie chart", "Table"]
-
-
-def _figure_as_image(fig, width):
-    """
-    Render a matplotlib figure as a fixed-width image. This keeps charts
-    compact instead of stretching to the full container, and images scale
-    down automatically on small phone screens.
-    """
-    buffer = io.BytesIO()
-    fig.savefig(buffer, format="png", dpi=150, bbox_inches="tight")
-    plt.close(fig)
-    st.image(buffer, width=width)
 
 
 def render_spending_views(expenses_data, key_prefix):
@@ -1108,41 +1297,87 @@ def render_spending_views(expenses_data, key_prefix):
                 st.progress(min(100, int(round(share))))
 
         elif choice == "Bar chart":
-            # Horizontal bars: category names stay readable and the biggest
-            # spender sits at the top.
-            ordered = totals.sort_values(ascending=True)  # barh draws bottom-up
-            fig, ax = plt.subplots(figsize=(6.2, 0.36 * len(ordered) + 0.7))
-            bars = ax.barh(ordered.index, ordered.values, color="#10B981")
-            ax.bar_label(bars, fmt="£%.0f", fontsize=7, padding=3, color="#3B4A5F")
-            ax.set_xlabel("£ spent", fontsize=8)
-            ax.tick_params(labelsize=8)
-            ax.margins(x=0.12)
-            ax.spines["top"].set_visible(False)
-            ax.spines["right"].set_visible(False)
-            ax.xaxis.grid(True, color="#E5EAF1")
-            ax.set_axisbelow(True)
-            _figure_as_image(fig, width=560)
+            # Native, interactive horizontal bar chart (Altair). Single emerald
+            # hue because this encodes ONE measure (£ per category), not
+            # categories-by-colour. Biggest spender on top; the £ amount is
+            # printed at the end of each bar (and also on hover).
+            bar_df = totals.reset_index()
+            bar_df.columns = ["Category", "Amount"]
+            bar_df["Label"] = bar_df["Amount"].map(lambda v: f"£{v:,.0f}")
+            y_enc = alt.Y(
+                "Category:N", sort="-x", title=None,
+                axis=alt.Axis(labelColor="#334155", labelFontSize=12,
+                              labelFontWeight="bold", domainColor="#CBD5E1", ticks=False),
+            )
+            x_enc = alt.X(
+                "Amount:Q", title="£ spent",
+                scale=alt.Scale(nice=True),
+                axis=alt.Axis(grid=True, gridColor="#EEF2F7", domainColor="#CBD5E1",
+                              tickColor="#EEF2F7", labelColor="#94A3B8",
+                              titleColor="#64748B", format="~s"),
+            )
+            bars = alt.Chart(bar_df).mark_bar(
+                color="#10B981", cornerRadiusEnd=5, size=22,
+            ).encode(
+                x=x_enc, y=y_enc,
+                tooltip=[alt.Tooltip("Category:N", title="Category"),
+                         alt.Tooltip("Amount:Q", title="£ spent", format=",.2f")],
+            )
+            labels = alt.Chart(bar_df).mark_text(
+                align="left", dx=6, color="#0F172A", fontSize=12, fontWeight="bold",
+            ).encode(x=x_enc, y=y_enc, text=alt.Text("Label:N"))
+            chart = (bars + labels).properties(
+                height=max(280, 44 * len(bar_df)),
+            ).configure_view(strokeWidth=0).configure(background="transparent")
+            st.altair_chart(chart, width="stretch", theme=None)
 
         elif choice == "Pie chart":
-            # Compact pie: percentages inside the slices (hidden below 3% to
-            # avoid clutter) and category names in a small legend beside it.
-            fig, ax = plt.subplots(figsize=(3.4, 3.4))
-            wedges, _, _ = ax.pie(
-                totals.values,
-                autopct=lambda pct: f"{pct:.0f}%" if pct >= 3 else "",
-                startangle=90,
-                textprops={"fontsize": 7, "color": "white", "fontweight": "bold"},
+            # Native, interactive donut (Altair). Categories are encoded by
+            # colour here, so it uses a colourblind-validated categorical palette
+            # (fixed order). Many tiny slices are unreadable, so the top 7 stay
+            # and the rest fold into "Other". Each slice of 4%+ is labelled with
+            # its share; hover shows the exact £ and %.
+            pie_df = totals.reset_index()
+            pie_df.columns = ["Category", "Amount"]
+            if len(pie_df) > 8:
+                other_amount = float(pie_df["Amount"].iloc[7:].sum())
+                pie_df = pd.concat(
+                    [pie_df.iloc[:7],
+                     pd.DataFrame([{"Category": "Other", "Amount": other_amount}])],
+                    ignore_index=True,
+                )
+            pie_total = float(pie_df["Amount"].sum())
+            pie_df["Share"] = (pie_df["Amount"] / pie_total * 100) if pie_total > 0 else 0
+            pie_df["PctLabel"] = pie_df["Share"].map(lambda s: f"{s:.0f}%" if s >= 4 else "")
+
+            # Validated categorical palette (worst adjacent colourblind ΔE 24.2).
+            palette = ["#2a78d6", "#1baf7a", "#eda100", "#008300",
+                       "#4a3aa7", "#e34948", "#e87ba4", "#eb6834"]
+            theta_enc = alt.Theta("Amount:Q", stack=True)
+            order_enc = alt.Order("Amount:Q", sort="descending")
+            color_enc = alt.Color(
+                "Category:N",
+                scale=alt.Scale(domain=list(pie_df["Category"]),
+                                range=palette[:len(pie_df)]),
+                legend=alt.Legend(title=None, labelColor="#334155",
+                                  labelFontSize=12, symbolType="circle"),
             )
-            ax.legend(
-                wedges,
-                list(totals.index),
-                loc="center left",
-                bbox_to_anchor=(1.0, 0.5),
-                fontsize=7,
-                frameon=False,
+            arc = alt.Chart(pie_df).mark_arc(
+                innerRadius=70, outerRadius=132, cornerRadius=2,
+                stroke="#FFFFFF", strokeWidth=2,
+            ).encode(
+                theta=theta_enc, order=order_enc, color=color_enc,
+                tooltip=[alt.Tooltip("Category:N", title="Category"),
+                         alt.Tooltip("Amount:Q", title="£ spent", format=",.2f"),
+                         alt.Tooltip("Share:Q", title="Share %", format=".1f")],
             )
-            ax.axis("equal")
-            _figure_as_image(fig, width=440)
+            slice_labels = alt.Chart(pie_df).mark_text(
+                radius=101, fontSize=12, fontWeight="bold", color="#FFFFFF",
+            ).encode(theta=theta_enc, order=order_enc, text=alt.Text("PctLabel:N"))
+            chart = (arc + slice_labels).properties(
+                height=330,
+            ).configure_view(strokeWidth=0).configure(background="transparent")
+            st.altair_chart(chart, width="stretch", theme=None)
 
         else:  # Table
             breakdown = helpers.category_breakdown_table(expenses_data)
@@ -1212,54 +1447,31 @@ def render_saving_opportunities(
         unsafe_allow_html=True,
     )
 
-    for index, opp in enumerate(opportunities):
-        # Unique keys per page/card so buttons and cached AI plans never clash.
-        plan_key = f"ai_saving_plan_{page_key}_{index}_{opp['title']}"
-        cache_key = f"{plan_key}__{opp['current_amount']}__text"
+    # Red / amber / green dot in each card header so priority reads at a glance
+    # even while collapsed: red = high spend/priority, amber = medium, green = low.
+    priority_dot = {"High": "🔴", "Medium": "🟡", "Low": "🟢"}
 
-        # Open the top (highest-priority) card by default, and keep open any card
-        # whose AI plan has already been generated (so the cached plan stays
-        # visible); the rest stay collapsed to keep things tidy.
-        expanded = (index == 0) or bool(st.session_state.get(cache_key))
+    for index, opp in enumerate(opportunities):
+        # Open the top (highest-priority) card by default; the rest stay
+        # collapsed to keep the list short and tidy, especially on mobile.
+        dot = priority_dot.get(opp["priority"], "⚪")
         with st.expander(
-            f"{opp['title']}  (Priority: {opp['priority']})",
-            expanded=expanded,
+            f"{dot} {opp['title']}  —  {opp['priority']} priority",
+            expanded=(index == 0),
         ):
             st.caption(f"Detected from: {opp['detected_from']}")
 
-            # Headline spend on its own row so the value never gets clipped.
+            # What you currently spend here - the figure the estimate builds on.
             st.metric(amount_label, f"£{opp['current_amount']:,.2f}")
 
-            # Debt is shown as a long-term interest reduction, not a normal bill
-            # saving, so its two figures are relabelled accordingly.
-            if opp.get("saving_kind") == "interest":
-                monthly_saving_label = "Potential monthly interest reduction"
-                yearly_saving_label = "Potential yearly interest reduction"
-            else:
-                monthly_saving_label = "Estimated monthly saving"
-                yearly_saving_label = "Estimated yearly saving"
-
-            # The two ranges share a roomy two-column row. (Three columns made
-            # these longer values overflow / truncate inside the card.)
-            saving_col1, saving_col2 = st.columns(2)
-            saving_col1.metric(
-                monthly_saving_label,
-                f"£{opp['estimated_monthly_saving_low']:,.2f} to "
-                f"£{opp['estimated_monthly_saving_high']:,.2f}",
-            )
-            saving_col2.metric(
-                yearly_saving_label,
-                f"£{opp['estimated_yearly_saving_low']:,.2f} to "
-                f"£{opp['estimated_yearly_saving_high']:,.2f}",
-            )
-
-            # Priority already shows in the card title, so no big alert box
-            # here - keeps the expanded card compact.
+            # The card now reads in a natural order: what you spend -> why it
+            # matters -> how you'd save -> the exact steps -> the payoff (the
+            # estimated saving) shown LAST, so the number is the reward for the
+            # actions rather than an unexplained figure up top.
             st.markdown(f"**Why it matters:** {opp['why_it_matters']}")
+            st.markdown(f"**How to reach it:** {opp['how_to_save']}.")
 
-            # These come from the rule engine (helpers), not the AI model.
-            # Rendered as tick-style checklist items so they read as a to-do
-            # list rather than a wall of bullets.
+            # Rule-engine actions as a tick-style checklist (a clear to-do list).
             st.markdown("**Recommended actions**")
             checklist = "".join(
                 '<div class="wb-check-item"><span class="wb-check-mark">✓</span>'
@@ -1271,34 +1483,75 @@ def render_saving_opportunities(
                 unsafe_allow_html=True,
             )
 
-            # ---- Optional AI saving plan (only runs when the user clicks) ----
-            if st.button("Generate AI saving plan", key=plan_key):
-                if not ai_ready:
-                    base = (
-                        "Local AI (Ollama) isn't connected, so an AI saving plan "
-                        "can't be generated right now. The rule-based tips above "
-                        "still apply."
-                    )
-                    st.info(f"{ai_message} {base}" if ai_message else base)
-                else:
-                    st.markdown("**AI saving plan**")
-                    client = ai_helper.get_client(ollama_host)
-                    plan_text = st.write_stream(
-                        ai_helper.stream_saving_opportunity_advice(
-                            client,
-                            ollama_model,
-                            opp,
-                            budget_summary=summary,
-                            period_label=period_label,
-                        )
-                    )
-                    # Cache so the plan stays visible on later reruns (no re-call).
-                    st.session_state[cache_key] = plan_text
-            elif st.session_state.get(cache_key):
-                st.markdown("**AI saving plan**")
-                st.write(st.session_state[cache_key])
+            # ---- Payoff box: shown AFTER the actions ("do this -> save that") ----
+            # Debt is framed as a potential interest reduction, not a bill saving.
+            if opp.get("saving_kind") == "interest":
+                payoff_label = "Do this, and you could reduce interest by"
+                payoff_note = (
+                    f"About {opp['saving_percentage_low']}-{opp['saving_percentage_high']}% of what "
+                    "goes to this debt - depends on your rate and terms, so it is not guaranteed."
+                )
+            else:
+                payoff_label = "Do this, and you could save an estimated"
+                payoff_note = (
+                    f"Around {opp['saving_percentage_low']}-{opp['saving_percentage_high']}% of the "
+                    f"£{opp['current_amount']:,.2f} you spend here - an estimate, not a guarantee."
+                )
+            st.markdown(
+                f'<div class="wb-payoff">'
+                f'<div class="wb-payoff-label">✨ {payoff_label}</div>'
+                f'<div class="wb-payoff-value">'
+                f'£{opp["estimated_monthly_saving_low"]:,.2f}&ndash;£{opp["estimated_monthly_saving_high"]:,.2f}'
+                f'<span class="wb-payoff-unit"> / month</span>'
+                f'<span class="wb-payoff-year"> &nbsp;·&nbsp; '
+                f'£{opp["estimated_yearly_saving_low"]:,.0f}&ndash;£{opp["estimated_yearly_saving_high"]:,.0f}'
+                f'<span class="wb-payoff-unit"> / year</span></span>'
+                f'</div>'
+                f'<div class="wb-payoff-sub">{payoff_note}</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
 
             st.caption(opp["disclaimer"])
+
+    # ---- One AI saving plan button for the whole section (not per card) ----
+    # A single button keeps the section clean. On click it builds a plan for the
+    # top few non-debt opportunities in one go. Only runs on click, and needs
+    # local AI (Ollama); otherwise it shows one clear message. The result is
+    # cached so it survives reruns without re-calling the model.
+    st.write("")
+    combined_key = f"ai_saving_plan_all_{page_key}"
+    if st.button(f"✨ {L('Generate AI saving plan')}", key=f"btn_{combined_key}"):
+        if not ai_ready:
+            base = (
+                "Local AI (Ollama) isn't connected, so an AI saving plan can't be "
+                "generated right now. The recommended actions in each card above "
+                "still apply."
+            )
+            st.info(f"{ai_message} {base}" if ai_message else base)
+        else:
+            client = ai_helper.get_client(ollama_host)
+            focus = [o for o in opportunities if o.get("saving_kind") != "interest"] or opportunities
+            focus = focus[:3]
+            parts = []
+            for opp in focus:
+                st.markdown(f"**{opp['title']}**")
+                text = st.write_stream(
+                    ai_helper.stream_saving_opportunity_advice(
+                        client, ollama_model, opp,
+                        budget_summary=summary, period_label=period_label,
+                    )
+                )
+                parts.append(f"**{opp['title']}**\n\n{text}")
+            st.session_state[combined_key] = "\n\n---\n\n".join(parts)
+    elif st.session_state.get(combined_key):
+        st.markdown("**AI saving plan**")
+        st.markdown(st.session_state[combined_key])
+
+    st.caption(
+        "One click builds a step-by-step plan for your top opportunities. "
+        "Needs local AI (Ollama); the recommended actions above always work."
+    )
 
 
 # ============================================================
@@ -1321,16 +1574,19 @@ PAGES = [
     "Add Expense",
     "WiseBudget AI Coach",
     "Savings Goals",
+    "Projections",
     "Investment Learning Hub",
     "Feedback",
 ]
 
-# This public cloud demo starts with Demo Mode ON, so visitors always see
-# example data first and never need to enter anything.
+# The cloud demo starts with Demo Mode ON (visitors see example data first);
+# the private build starts OFF so you land on your real data.
 if "current_page" not in st.session_state:
     st.session_state["current_page"] = PAGES[0]
 if "demo_mode" not in st.session_state:
-    st.session_state["demo_mode"] = True
+    st.session_state["demo_mode"] = IS_CLOUD_DEMO
+if "lang" not in st.session_state:
+    st.session_state["lang"] = "en"
 
 
 def sync_current_page(widget_key):
@@ -1341,6 +1597,11 @@ def sync_current_page(widget_key):
 def sync_demo_mode(widget_key):
     """Copy a Demo Mode widget's value into the master demo_mode value."""
     st.session_state["demo_mode"] = st.session_state[widget_key]
+
+
+def sync_lang(widget_key):
+    """Copy a language widget's value into the master language value."""
+    st.session_state["lang"] = st.session_state[widget_key]
 
 
 DEMO_MODE_HELP = (
@@ -1368,7 +1629,7 @@ with st.sidebar:
 # the real CSV files.
 st.session_state["demo_mode_sidebar"] = st.session_state["demo_mode"]
 st.sidebar.toggle(
-    "Demo Mode",
+    L("Demo Mode"),
     key="demo_mode_sidebar",
     on_change=sync_demo_mode,
     args=("demo_mode_sidebar",),
@@ -1377,13 +1638,27 @@ st.sidebar.toggle(
 if st.session_state["demo_mode"]:
     st.sidebar.caption("🧪 Example data only - your files are untouched.")
 
+# Language picker: options are language codes, shown by their native name.
+# It's mirrored in the App menu, so both stay in sync via the master "lang".
+_lang_codes = list(i18n.LANGUAGES.keys())
+st.session_state["lang_sidebar"] = st.session_state["lang"]
+st.sidebar.selectbox(
+    L("Language"),
+    _lang_codes,
+    key="lang_sidebar",
+    format_func=lambda code: i18n.LANGUAGES[code],
+    on_change=sync_lang,
+    args=("lang_sidebar",),
+)
+
 st.session_state["nav_sidebar"] = st.session_state["current_page"]
 st.sidebar.radio(
-    "Navigation",
+    L("Navigation"),
     PAGES,
     key="nav_sidebar",
     on_change=sync_current_page,
     args=("nav_sidebar",),
+    format_func=L,   # translate the page names for display (values stay English)
 )
 
 st.sidebar.write("---")
@@ -1394,11 +1669,17 @@ with st.sidebar.expander("⚙️ AI Settings", expanded=False):
         "Install Ollama from [ollama.com](https://ollama.com), then pull a model "
         "(in a terminal: `ollama pull llama3.2`)."
     )
-    st.caption(
-        "In this public cloud demo there is usually no local AI available, so "
-        "the app runs in rule-based mode - all insights and saving "
-        "opportunities still work."
-    )
+    if IS_CLOUD_DEMO:
+        st.caption(
+            "In this public cloud demo there is usually no local AI available, so "
+            "the app runs in rule-based mode - all insights and saving "
+            "opportunities still work."
+        )
+    else:
+        st.caption(
+            "With Ollama running, the AI Coach and saving plans turn on. Without "
+            "it, the app runs in rule-based mode - all insights still work."
+        )
     ollama_model = st.text_input(
         "Ollama model",
         value=st.session_state.get("ollama_model", ai_helper.DEFAULT_MODEL),
@@ -1437,7 +1718,7 @@ else:
 # Demo Mode label sits above everything so testers always know what they see.
 if st.session_state.get("demo_mode"):
     st.markdown(
-        '<div class="wb-demo-banner">🧪 Demo Mode: using example data only</div>',
+        f'<div class="wb-demo-banner">🧪 {L("Demo Mode: using example data only")}</div>',
         unsafe_allow_html=True,
     )
 
@@ -1452,12 +1733,11 @@ else:
 st.markdown(
     f'<div class="wb-hero">'
     f'<div class="wb-hero-kicker">{hero_logo} WiseBudget AI</div>'
-    f'<p class="wb-hero-title">Take control of your spending</p>'
-    f'<p class="wb-hero-sub">Track your money, spot saving opportunities, '
-    f'and learn better financial habits.</p>'
-    f'<span class="wb-badge">🔒 Local-first</span>'
-    f'<span class="wb-badge">🎓 Education only</span>'
-    f'<span class="wb-badge">≈ Estimates, not guarantees</span>'
+    f'<p class="wb-hero-title">{L("Take control of your spending")}</p>'
+    f'<p class="wb-hero-sub">{L("Track your money, spot saving opportunities, and learn better financial habits.")}</p>'
+    f'<span class="wb-badge">🔒 {L("Local-first")}</span>'
+    f'<span class="wb-badge">🎓 {L("Education only")}</span>'
+    f'<span class="wb-badge">≈ {L("Estimates, not guarantees")}</span>'
     f'</div>',
     unsafe_allow_html=True,
 )
@@ -1468,13 +1748,15 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Cloud-demo privacy note: this public version runs on shared hosting, so
-# testers should never type real financial details into it.
-st.markdown(
-    '<div class="wb-disclaimer">🔒 This public demo is for testing the interface only. '
-    'Do not enter private financial information.</div>',
-    unsafe_allow_html=True,
-)
+# Cloud-demo privacy note: the public version runs on shared hosting, so testers
+# should never type real financial details into it. The private local build
+# holds the user's own data, so this note doesn't apply there.
+if IS_CLOUD_DEMO:
+    st.markdown(
+        '<div class="wb-disclaimer">🔒 This public demo is for testing the interface only. '
+        'Do not enter private financial information.</div>',
+        unsafe_allow_html=True,
+    )
 
 
 # ============================================================
@@ -1483,12 +1765,22 @@ st.markdown(
 # Mirrors the sidebar controls inside the main page, so phones can always
 # navigate and toggle Demo Mode even when the sidebar is collapsed.
 
-with st.expander("📱 App menu", expanded=False):
+with st.expander(f"📱 {L('App menu')}", expanded=False):
     st.caption("Use this menu if the sidebar is hidden on mobile.")
+
+    st.session_state["lang_menu"] = st.session_state["lang"]
+    st.selectbox(
+        L("Language"),
+        _lang_codes,
+        key="lang_menu",
+        format_func=lambda code: i18n.LANGUAGES[code],
+        on_change=sync_lang,
+        args=("lang_menu",),
+    )
 
     st.session_state["demo_mode_menu"] = st.session_state["demo_mode"]
     st.toggle(
-        "Demo Mode",
+        L("Demo Mode"),
         key="demo_mode_menu",
         on_change=sync_demo_mode,
         args=("demo_mode_menu",),
@@ -1497,11 +1789,12 @@ with st.expander("📱 App menu", expanded=False):
 
     st.session_state["nav_menu"] = st.session_state["current_page"]
     st.selectbox(
-        "Go to page",
+        L("Go to page"),
         PAGES,
         key="nav_menu",
         on_change=sync_current_page,
         args=("nav_menu",),
+        format_func=L,
     )
 
     if ai_ready:
@@ -1526,14 +1819,19 @@ page = st.session_state["current_page"]
 # ============================================================
 
 if page == "Dashboard":
-    st.header("Dashboard")
+    st.header(L("Dashboard"))
 
     income_data, expenses_data, goals_raw = get_active_data()
     goals_data = helpers.prepare_goals_data(goals_raw)
 
     # ---- Period filter ----
+    # The stored values stay "YYYY-MM" (used for filtering); format_func just
+    # shows them as friendly labels like "July 2026".
     month_options = helpers.get_month_options(income_data, expenses_data)
-    selected_month = st.selectbox("Period", month_options)
+    selected_month = st.selectbox(
+        L("Period"), month_options,
+        format_func=lambda m: L(helpers.format_month_label(m)),
+    )
 
     income_view = helpers.filter_by_month(income_data, selected_month)
     expenses_view = helpers.filter_by_month(expenses_data, selected_month)
@@ -1541,24 +1839,24 @@ if page == "Dashboard":
     summary = helpers.compute_summary(income_view, expenses_view)
 
     render_stat_cards([
-        {"icon": "💷", "label": "Total Income",
+        {"icon": "💷", "label": L("Total Income"),
          "value": f"£{summary['total_income']:,.2f}",
-         "help": "Income recorded for this period"},
-        {"icon": "🧾", "label": "Total Expenses",
+         "help": L("Income recorded for this period")},
+        {"icon": "🧾", "label": L("Total Expenses"),
          "value": f"£{summary['total_expenses']:,.2f}",
-         "help": "Spending recorded for this period"},
-        {"icon": "💰", "label": "Remaining Balance",
+         "help": L("Spending recorded for this period")},
+        {"icon": "💰", "label": L("Remaining Balance"),
          "value": f"£{summary['remaining_balance']:,.2f}",
-         "help": "Income minus expenses"},
-        {"icon": "📈", "label": "Savings Rate",
+         "help": L("Income minus expenses")},
+        {"icon": "📈", "label": L("Savings Rate"),
          "value": f"{summary['savings_rate']:.1f}%",
-         "help": "Money kept after living costs"},
+         "help": L("Money kept after living costs")},
     ])
 
     st.write("---")
 
     # ---- Your Top 3 Money Actions (highest-impact, non-debt) ----
-    st.subheader("Your Top 3 Money Actions")
+    st.subheader(L("Your Top 3 Money Actions"))
     # "All time" spans several months, so estimates use the monthly AVERAGE
     # rather than pretending the total is one month's spending.
     if selected_month == ALL_TIME:
@@ -1573,8 +1871,8 @@ if page == "Dashboard":
     st.write("---")
 
     # ---- Smart Saving Opportunities (selected period only) ----
-    st.subheader("Smart Saving Opportunities")
-    st.caption(f"Based on your expenses for: {selected_month}")
+    st.subheader(L("Smart Saving Opportunities"))
+    st.caption(f"Based on your expenses for: {helpers.format_month_label(selected_month)}")
     if months_covered > 1:
         st.caption(f"Amounts are monthly averages across {months_covered} months of data.")
         amount_label = "Average monthly amount based on selected data"
@@ -1594,12 +1892,17 @@ if page == "Dashboard":
 
     st.write("---")
 
-    st.subheader("Spending by Category")
+    st.subheader(L("Spending by Category"))
     render_spending_views(expenses_view, key_prefix="dashboard")
 
     st.write("---")
 
-    st.subheader("Income vs Expenses by Month")
+    st.subheader(L("Income vs Expenses by Month"))
+    st.caption(
+        "Did you finish each month up or down? **Net** is income minus expenses "
+        "for that month - green/positive means you kept money, red/negative means "
+        "you spent more than came in."
+    )
     with st.container(border=True):
         trend = helpers.monthly_totals(income_data, expenses_data)
         if trend.empty:
@@ -1610,6 +1913,8 @@ if page == "Dashboard":
             trend_table.columns = ["Month"] + list(trend_table.columns[1:])
             trend_table["Net"] = trend_table["Income"] - trend_table["Expenses"]
             trend_table = trend_table.sort_values("Month", ascending=False)
+            # Show readable month names ("July 2026") instead of "2026-07".
+            trend_table["Month"] = trend_table["Month"].apply(helpers.format_month_label)
             st.dataframe(
                 trend_table,
                 width="stretch",
@@ -1623,7 +1928,7 @@ if page == "Dashboard":
 
     st.write("---")
 
-    st.subheader("Savings Goals Overview")
+    st.subheader(L("Savings Goals Overview"))
     if goals_data.empty:
         st.write("No savings goals recorded yet.")
     else:
@@ -1655,7 +1960,7 @@ if page == "Dashboard":
 
     st.write("---")
 
-    st.subheader("Records & export")
+    st.subheader(L("Records & export"))
     st.caption("The detailed data behind the dashboard - open it when you need it.")
 
     # Collapsed by default so the dashboard stays focused on insights.
@@ -1699,7 +2004,7 @@ if page == "Dashboard":
 # ============================================================
 
 elif page == "Add Income":
-    st.header("Add Income")
+    st.header(L("Add Income"))
 
     # Demo Mode shows example data, so adding/editing real records is paused
     # to avoid any confusion between demo rows and the user's own files.
@@ -1743,7 +2048,7 @@ elif page == "Add Income":
                 st.success("Income saved successfully.")
 
     st.write("---")
-    st.subheader("Edit or delete income records")
+    st.subheader(L("Edit or delete income records"))
     st.caption("Edit cells directly, or use the 🗑 / + controls to delete or add rows, then save.")
 
     income_data = helpers.load_income()
@@ -1771,7 +2076,7 @@ elif page == "Add Income":
 # ============================================================
 
 elif page == "Add Expense":
-    st.header("Add Expense")
+    st.header(L("Add Expense"))
 
     # Same demo-mode guard as Add Income (see comment there).
     if st.session_state.get("demo_mode"):
@@ -1826,7 +2131,7 @@ elif page == "Add Expense":
                 st.success(f"Expense saved successfully. Category: {final_category}")
 
     st.write("---")
-    st.subheader("Edit or delete expense records")
+    st.subheader(L("Edit or delete expense records"))
     st.caption("Edit cells directly, or use the 🗑 / + controls to delete or add rows, then save.")
 
     expenses_data = helpers.load_expenses()
@@ -1856,7 +2161,7 @@ elif page == "Add Expense":
 # ============================================================
 
 elif page == "WiseBudget AI Coach":
-    st.header("WiseBudget AI Coach")
+    st.header(L("WiseBudget AI Coach"))
 
     st.markdown(
         '<div class="wb-intro-card">'
@@ -1904,26 +2209,26 @@ elif page == "WiseBudget AI Coach":
     st.write("---")
 
     # ---- Budget snapshot ----
-    st.subheader("Budget snapshot")
+    st.subheader(L("Budget snapshot"))
     render_stat_cards([
-        {"icon": "💷", "label": "Total Income",
+        {"icon": "💷", "label": L("Total Income"),
          "value": f"£{summary['total_income']:,.2f}",
-         "help": "All income recorded"},
-        {"icon": "🧾", "label": "Total Expenses",
+         "help": L("All income recorded")},
+        {"icon": "🧾", "label": L("Total Expenses"),
          "value": f"£{summary['total_expenses']:,.2f}",
-         "help": "All spending recorded"},
-        {"icon": "💰", "label": "Remaining Balance",
+         "help": L("All spending recorded")},
+        {"icon": "💰", "label": L("Remaining Balance"),
          "value": f"£{summary['remaining_balance']:,.2f}",
-         "help": "Income minus expenses"},
-        {"icon": "📈", "label": "Savings Rate",
+         "help": L("Income minus expenses")},
+        {"icon": "📈", "label": L("Savings Rate"),
          "value": f"{summary['savings_rate']:.1f}%",
-         "help": "Money kept after living costs"},
+         "help": L("Money kept after living costs")},
     ])
 
     st.write("---")
 
     # ---- Quick checks (rule-based, always work without AI) ----
-    st.subheader("Quick checks")
+    st.subheader(L("Quick checks"))
     with st.container(border=True):
         insights = helpers.generate_budget_insights(
             summary["total_income"],
@@ -1938,7 +2243,7 @@ elif page == "WiseBudget AI Coach":
     st.write("---")
 
     # ---- Smart Saving Opportunities ----
-    st.subheader("Smart Saving Opportunities")
+    st.subheader(L("Smart Saving Opportunities"))
     if months_covered > 1:
         st.caption(f"Amounts are monthly averages across {months_covered} months of data.")
         coach_amount_label = "Average monthly amount based on selected data"
@@ -1959,7 +2264,7 @@ elif page == "WiseBudget AI Coach":
     st.write("---")
 
     # ---- One-click AI analysis ----
-    st.subheader("✨ AI budget analysis")
+    st.subheader(L("✨ AI budget analysis"))
     with st.container(border=True):
         if not ai_ready:
             st.info(
@@ -1979,12 +2284,16 @@ elif page == "WiseBudget AI Coach":
     st.write("---")
 
     # ---- Chat assistant ----
-    st.subheader("💬 Chat with WiseBudget AI")
+    st.subheader(L("💬 Chat with WiseBudget AI"))
     if not ai_ready:
+        chat_hint = (
+            "isn't available in this cloud demo."
+            if IS_CLOUD_DEMO else
+            "isn't connected right now (start Ollama to enable it)."
+        )
         st.info(
             "Rule-based mode active — smart checks and saving opportunities "
-            "still work. The chat assistant needs a local Ollama model, which "
-            "isn't available in this cloud demo."
+            f"still work. The chat assistant needs a local Ollama model, which {chat_hint}"
         )
     else:
         client = ai_helper.get_client(ollama_host)
@@ -2040,7 +2349,7 @@ elif page == "WiseBudget AI Coach":
 # ============================================================
 
 elif page == "Savings Goals":
-    st.header("Savings Goals")
+    st.header(L("Savings Goals"))
 
     st.markdown(
         '<div class="wb-intro-card">'
@@ -2082,7 +2391,7 @@ elif page == "Savings Goals":
                     st.success("Savings goal saved successfully.")
 
     st.write("---")
-    st.subheader("Saved Goals")
+    st.subheader(L("Saved Goals"))
 
     _, _, goals_raw_page = get_active_data()
     goals_data = helpers.prepare_goals_data(goals_raw_page)
@@ -2117,7 +2426,7 @@ elif page == "Savings Goals":
             )
 
     st.write("---")
-    st.subheader("Edit or delete goals")
+    st.subheader(L("Edit or delete goals"))
     if st.session_state.get("demo_mode"):
         st.caption("Editing is disabled while Demo Mode is on.")
     else:
@@ -2145,11 +2454,235 @@ elif page == "Savings Goals":
 
 
 # ============================================================
+# Projections page (long-term "what if" illustrations)
+# ============================================================
+#
+# Turns a monthly amount into a long-term picture. All figures are simple
+# ILLUSTRATIONS, never predictions or advice. Any growth rate is chosen by the
+# user (default 0%), so the app never invents an interest rate/APR/return.
+# Nothing here is saved - projections are recomputed on the fly, no CSV changes.
+
+elif page == "Projections":
+    st.header(L("Projections"))
+
+    st.markdown(
+        '<div class="wb-intro-card">'
+        '<div class="wb-intro-title">See the long-term picture.</div>'
+        'Small monthly amounts add up over time. Explore how a regular saving '
+        'could build up, or what a recurring cost adds up to over the years.'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+    st.caption(
+        "These are simple illustrations for learning, not predictions, "
+        "guarantees, or financial advice."
+    )
+
+    # Data (respects Demo Mode) - used to prefill the expense and opportunity
+    # tabs so the page is useful straight away.
+    proj_income, proj_expenses, _ = get_active_data()
+    proj_summary = helpers.compute_summary(proj_income, proj_expenses)
+    proj_months = helpers.count_months_covered(proj_expenses)
+    proj_opportunities = helpers.generate_saving_opportunities(
+        proj_expenses, proj_income, months_covered=proj_months
+    )
+
+    savings_tab, expense_tab, opportunity_tab = st.tabs(
+        ["💰 Savings plan", "🧾 Expense cost", "💡 Saving opportunity"]
+    )
+
+    # ---- Tab 1: Savings plan -------------------------------------------------
+    with savings_tab:
+        st.markdown("**How much could a regular saving build up to?**")
+
+        col_a, col_b = st.columns(2)
+        monthly_amount = col_a.number_input(
+            "Amount saved per month (£)",
+            min_value=0.0, value=300.0, step=25.0, key="proj_monthly",
+            help="How much you would set aside each month.",
+        )
+        starting_amount = col_b.number_input(
+            "Starting amount (£, optional)",
+            min_value=0.0, value=0.0, step=100.0, key="proj_start",
+            help="Money you already have set aside, if any.",
+        )
+
+        growth_rate = st.slider(
+            "Illustrative annual growth rate (%)",
+            min_value=0.0, max_value=12.0, value=0.0, step=0.5, key="proj_rate",
+            help="You choose this rate yourself. It is only an illustration, "
+                 "not a prediction, guarantee, or investment advice.",
+        )
+        if growth_rate > 0:
+            st.caption(
+                f"Showing an illustrative {growth_rate:.1f}% a year that you chose. "
+                "This is not a prediction or advice - real returns vary and are "
+                "not guaranteed."
+            )
+        else:
+            st.caption(
+                "No growth assumed - this is money set aside only. Add an "
+                "illustrative rate above to see how compound growth could work."
+            )
+
+        table = helpers.savings_projection_table(monthly_amount, growth_rate, starting_amount)
+
+        # Headline cards for a few key horizons (reuses the stat-card style).
+        totals_by_period = dict(zip(table["Period"], table["Projected total"]))
+        render_stat_cards([
+            {"icon": "📅", "label": "In 1 year",
+             "value": f"£{totals_by_period.get('1 year', 0):,.0f}",
+             "help": "Projected total set aside"},
+            {"icon": "🗓️", "label": "In 5 years",
+             "value": f"£{totals_by_period.get('5 years', 0):,.0f}",
+             "help": "Projected total set aside"},
+            {"icon": "🌟", "label": "In 10 years",
+             "value": f"£{totals_by_period.get('10 years', 0):,.0f}",
+             "help": "Projected total set aside"},
+        ])
+
+        # Full breakdown. When there's no growth, the "growth" column is always
+        # £0, so drop it and show a simpler two-column table.
+        if growth_rate > 0:
+            st.dataframe(
+                table, width="stretch", hide_index=True,
+                column_config={
+                    "You set aside": st.column_config.NumberColumn("You set aside", format="£%.2f"),
+                    "Illustrative growth": st.column_config.NumberColumn("Illustrative growth", format="£%.2f"),
+                    "Projected total": st.column_config.NumberColumn("Projected total", format="£%.2f"),
+                },
+            )
+        else:
+            st.dataframe(
+                table[["Period", "Projected total"]], width="stretch", hide_index=True,
+                column_config={
+                    "Projected total": st.column_config.NumberColumn("Total set aside", format="£%.2f"),
+                },
+            )
+
+        st.caption(
+            "Illustration only. Figures assume you save the same amount every "
+            "month and do not include tax, fees, or inflation. Not a prediction "
+            "or financial advice."
+        )
+
+    # ---- Tab 2: Expense cost -------------------------------------------------
+    with expense_tab:
+        st.markdown("**What does a recurring cost add up to over time?**")
+
+        # Offer the user's own spending categories as quick prefills, so they
+        # can see the long-term cost of a real category they already have.
+        category_costs = helpers.category_totals(proj_expenses)
+        prefill = 50.0
+        if not category_costs.empty:
+            options = ["Enter my own amount"] + [
+                f"{cat} (£{amount / proj_months:,.0f}/month average)"
+                for cat, amount in category_costs.items()
+            ]
+            picked = st.selectbox(
+                "Base it on a category, or enter your own",
+                options, key="proj_expense_pick",
+            )
+            if picked != "Enter my own amount":
+                # Recover the monthly average for the chosen category.
+                chosen_category = picked.split(" (£")[0]
+                prefill = round(float(category_costs.get(chosen_category, 0)) / proj_months, 2)
+
+        expense_monthly = st.number_input(
+            "Recurring cost per month (£)",
+            min_value=0.0, value=float(prefill), step=5.0, key="proj_expense_monthly",
+            help="A regular monthly cost you want to see the long-term total of.",
+        )
+
+        expense_table = helpers.expense_cost_table(expense_monthly)
+        five_year = float(
+            expense_table.loc[expense_table["Period"] == "5 years", "Total cost"].iloc[0]
+        )
+        st.markdown(
+            f'<div class="wb-summary-card">At <b>£{expense_monthly:,.2f}/month</b>, '
+            f'this adds up to <b>£{five_year:,.2f} over 5 years</b>. Seeing the '
+            f'long-term total can make a recurring cost easier to judge.</div>',
+            unsafe_allow_html=True,
+        )
+        st.dataframe(
+            expense_table, width="stretch", hide_index=True,
+            column_config={
+                "Total cost": st.column_config.NumberColumn("Total cost", format="£%.2f"),
+            },
+        )
+        st.caption(
+            "Illustration only, assuming the cost stays the same. This is not a "
+            "suggestion to cut any spending - only a way to see the long-term total."
+        )
+
+    # ---- Tab 3: Saving opportunity ------------------------------------------
+    with opportunity_tab:
+        st.markdown("**Project an estimated saving into the future.**")
+
+        # Debt ("interest"-kind) opportunities are excluded: their figures are a
+        # potential interest reduction, not a straightforward monthly saving, so
+        # projecting them as savings would be misleading.
+        projectable = [
+            opp for opp in proj_opportunities
+            if opp.get("saving_kind") != "interest"
+        ]
+
+        if not projectable:
+            st.info(
+                "No saving opportunities to project yet. Add some expenses (or "
+                "turn on Demo Mode) and detected opportunities will appear here."
+            )
+        else:
+            titles = [opp["title"] for opp in projectable]
+            chosen_title = st.selectbox(
+                "Choose a detected saving opportunity",
+                titles, key="proj_opp_pick",
+            )
+            chosen = next(opp for opp in projectable if opp["title"] == chosen_title)
+
+            low = chosen["estimated_monthly_saving_low"]
+            high = chosen["estimated_monthly_saving_high"]
+            st.caption(
+                f"Estimated saving for this opportunity: £{low:,.2f} to "
+                f"£{high:,.2f} per month (an estimate, not a guarantee)."
+            )
+
+            opp_rate = st.slider(
+                "Illustrative annual growth rate (%)",
+                min_value=0.0, max_value=12.0, value=0.0, step=0.5, key="proj_opp_rate",
+                help="You choose this rate. Illustration only, not a prediction "
+                     "or advice.",
+            )
+
+            low_table = helpers.savings_projection_table(low, opp_rate)
+            high_table = helpers.savings_projection_table(high, opp_rate)
+            combined = pd.DataFrame({
+                "Period": low_table["Period"],
+                "If you saved the lower estimate": low_table["Projected total"],
+                "If you saved the higher estimate": high_table["Projected total"],
+            })
+            st.dataframe(
+                combined, width="stretch", hide_index=True,
+                column_config={
+                    "If you saved the lower estimate": st.column_config.NumberColumn(
+                        "Lower estimate", format="£%.2f"),
+                    "If you saved the higher estimate": st.column_config.NumberColumn(
+                        "Higher estimate", format="£%.2f"),
+                },
+            )
+            st.caption(
+                "Estimates only, not guaranteed savings. Shows what setting aside "
+                "the estimated saving each month could build up to - an "
+                "illustration, not financial advice."
+            )
+
+
+# ============================================================
 # Feedback page (for user testing)
 # ============================================================
 
 elif page == "Feedback":
-    st.header("Feedback")
+    st.header(L("Feedback"))
 
     st.markdown(
         '<div class="wb-intro-card">'
@@ -2159,6 +2692,8 @@ elif page == "Feedback":
         unsafe_allow_html=True,
     )
     st.caption(
+        "Feedback is saved to data/feedback.csv - nothing is sent anywhere."
+        if not IS_CLOUD_DEMO else
         "In the local version, feedback is saved to CSV. In the cloud demo, "
         "feedback may not persist after the app restarts."
     )
@@ -2232,7 +2767,7 @@ elif page == "Feedback":
 # ============================================================
 
 elif page == "Investment Learning Hub":
-    st.header("Investment Learning Hub")
+    st.header(L("Investment Learning Hub"))
 
     st.markdown(
         '<div class="wb-intro-card">'
@@ -2248,13 +2783,13 @@ elif page == "Investment Learning Hub":
         "It does not provide personal financial advice."
     )
 
-    st.subheader("Before Investing")
+    st.subheader(L("Before Investing"))
     st.write(
         "Before investing, a person should usually understand their budget, "
         "control high-interest debt, and build an emergency fund."
     )
 
-    st.subheader("Key Investing Concepts")
+    st.subheader(L("Key Investing Concepts"))
     # Concept cards: fixed educational copy only (no advice, no products).
     edu_cards = [
         ("⚖️", "Risk", "Investments can go up or down in value."),
@@ -2278,7 +2813,7 @@ elif page == "Investment Learning Hub":
     )
     st.markdown(f'<div class="wb-edu-grid">{edu_html}</div>', unsafe_allow_html=True)
 
-    st.subheader("Educational Note")
+    st.subheader(L("Educational Note"))
     st.info(
         "WiseBudget AI can help users understand how much money may be left after expenses, "
         "but it does not recommend specific stocks, funds, or investments."
